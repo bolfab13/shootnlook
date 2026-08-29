@@ -33,11 +33,30 @@ document.addEventListener('DOMContentLoaded', () => {
   $('open-reglages-btn')?.addEventListener('click',()=>{closeMenus();openTab('reglages')});
   document.querySelectorAll('[data-open-tab]').forEach(b=>b.addEventListener('click',()=>openTab(b.dataset.openTab)));
   $('form-profil')?.addEventListener('submit',async e=>{e.preventDefault();const p=$('pf-pseudo').value.trim()||'Admin',s=$('pf-societe').value.trim(),a=$('pf-adresse').value.trim(),cp=$('pf-code-postal').value.trim(),v=$('pf-ville').value.trim();localStorage.setItem('profil_pseudo',p);localStorage.setItem('profil_societe',s);localStorage.setItem('profil_adresse',a);localStorage.setItem('profil_code_postal',cp);localStorage.setItem('profil_ville',v);if(settings.id)await db.from('reglages').update({nom_entreprise:s,adresse:a,code_postal_entreprise:cp,ville_entreprise:v}).eq('id',settings.id);loadLocalProfile();$('profile-modal').classList.remove('visible')});
-  async function loadSettings(){const r=await db.from('reglages').select('*').single();if(r.data){settings=r.data;Object.assign(settings,r.data)}}
-  async function loadEcuries(){const r=await db.from('ecuries').select('*').order('nom');ecuries=r.data||[]}
-  async function loadCavalieres(){const r=await db.from('cavalieres').select('*').order('nom');cavaliers=r.data||[]}
-  async function loadConcours(){const r=await db.from('concours').select('*').order('date_debut');concours=r.data||[]}
-  async function loadDashboard(){if(!chart){const ctx=$('chart-ca')?.getContext('2d');if(ctx){chart=new window.Chart(ctx,{type:'line',data:{labels:['Jan','Fev','Mar','Avr','Mai','Jun'],datasets:[{label:'CA (€)',data:[0,0,0,0,0,0],borderColor:'var(--accent)',backgroundColor:'rgba(85,110,230,.12)',tension:.3,fill:!0}]},options:{responsive:!0,interaction:{mode:'index',intersect:!1},plugins:{legend:{display:!1},tooltip:{callbacks:{label:c=>euro(c.raw)}}}})}}}}
-  async function init(){await loadSettings();await loadEcuries();await loadCavalieres();await loadConcours();loadLocalProfile();applyIcons();loadDashboard();console.info('App initialized, Supabase:',!!db)}
+  async function loadSettings(){const r=await db.from('reglages').select('*').single();if(r.data){settings=r.data;Object.assign(settings,r.data);log('Settings loaded:',settings.id)}}
+  async function loadEcuries(){const r=await db.from('ecuries').select('*').order('nom');ecuries=r.data||[];log('Ecuries loaded:',ecuries.length)}
+  async function loadCavalieres(){const r=await db.from('cavalieres').select('*').order('nom');cavaliers=r.data||[];log('Cavalieres loaded:',cavaliers.length)}
+  async function loadConcours(){const r=await db.from('concours').select('*').order('date_debut');concours=r.data||[];log('Concours loaded:',concours.length)}
+  async function loadDashboard(){if(!chart){const ctx=$('chart-ca')?.getContext('2d');if(ctx){chart=new window.Chart(ctx,{type:'line',data:{labels:['Jan','Fev','Mar','Avr','Mai','Jun'],datasets:[{label:'CA (€)',data:[0,0,0,0,0,0],borderColor:'var(--accent)',backgroundColor:'rgba(85,110,230,.12)',tension:.3,fill:!0}]},options:{responsive:!0,interaction:{mode:'index',intersect:!1},plugins:{legend:{display:!1},tooltip:{callbacks:{label:c=>euro(c.raw)}}}})}};log('Dashboard loaded')}}
+  function log(...args){const msg=args.join(' ');console.log(msg);const box=$('debug-log');if(box){box.textContent+=msg+'\n';box.scrollTop=box.scrollHeight}}
+  async function init(){
+    try{
+      log('Starting app...');
+      log('Supabase client:',!!db);
+      log('URL:',SUPABASE_URL);
+      await loadSettings();
+      await loadEcuries();
+      await loadCavalieres();
+      await loadConcours();
+      loadLocalProfile();
+      applyIcons();
+      loadDashboard();
+      log('✓ App initialized successfully');
+    }catch(e){
+      log('✗ ERROR:',e.message);
+      console.error(e);
+    }
+  }
+  const debugBox=document.createElement('div');debugBox.id='debug-log';debugBox.style.cssText='position:fixed;bottom:10px;right:10px;width:280px;max-height:180px;overflow:auto;background:#222;color:#0f0;font:11px monospace;padding:8px;border-radius:5px;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,.5);opacity:.9';document.body.appendChild(debugBox);
   init();
 });
