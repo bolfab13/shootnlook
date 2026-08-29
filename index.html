@@ -6,13 +6,6 @@
 <title>Photo Equestre</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
 </head>
 <body>
 <div class="layout">
@@ -21,13 +14,13 @@
     <nav id="tabs">
       <div class="menu-title">Menu</div>
       <button data-tab="dashboard" class="active"><span class="icon bx bx-home-circle"></span>Tableau de bord</button>
-      <button data-tab="ecuries"><span class="icon bx bx-buildings"></span>É¬curies</button>
-      <button data-tab="cavalieres"><span class="icon bx bx-group"></span>Cavaliè¬¬res</button>
+      <button data-tab="ecuries"><span class="icon bx bx-buildings"></span>Ecuries</button>
+      <button data-tab="cavalieres"><span class="icon bx bx-group"></span>Cavalieres</button>
       <button data-tab="concours"><span class="icon bx bx-trophy"></span>Concours</button>
       <button data-tab="prestations"><span class="icon bx bx-camera"></span>Grille tarifaire</button>
-      <button data-tab="facturation"><span class="icon bx bx-receipt"></span>Cré¬¬er une facture</button>
-      <button data-tab="factures"><span class="icon bx bx-file"></span>Factures émise</button>
-      <button data-tab="reglages"><span class="icon bx bx-cog"></span>Ré¬¬glages</button>
+      <button data-tab="facturation"><span class="icon bx bx-receipt"></span>Creer une facture</button>
+      <button data-tab="factures"><span class="icon bx bx-file"></span>Factures emises</button>
+      <button data-tab="reglages"><span class="icon bx bx-cog"></span>Reglages</button>
     </nav>
   </aside>
   <div class="content-wrapper">
@@ -41,61 +34,33 @@
           <div id="user-menu" class="dropdown-menu user-dropdown">
             <div class="user-dropdown-head"><span class="user-avatar large">A</span><div><strong>Admin</strong><small>Admin</small></div></div>
             <button id="edit-profile-btn"><i class="bx bx-user"></i>Modifier le profil</button>
-            <button data-open-tab="reglages"><i class="bx bx-cog"></i>Ré¬¬glages</button>
+            <button data-open-tab="reglages"><i class="bx bx-cog"></i>Reglages</button>
           </div>
         </div>
       </div>
     </header>
     <main>
       <div id="dashboard" class="tab active">
-        <div class="page-heading"><h2>Bonjour Admin !</h2><p>Voici un aperç¬¬u de ton activité photographique.</p></div>
+        <div class="page-heading"><h2>Bonjour Admin !</h2><p>Voici un apercu de ton activite photographique.</p></div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-icon stat-icon-primary"><i class="bx bx-group"></i></div><div class="stat-info"><span class="stat-label">Cavaliè¬¬res</span><span class="stat-value" id="dash-total-cavalieres">0</span></div></div>
-          <div class="stat-card"><div class="stat-icon stat-icon-success"><i class="bx bx-buildings"></i></div><div class="stat-info"><span class="stat-label">É¬curies</span><span class="stat-value" id="dash-total-ecuries">0</span></div></div>
+          <div class="stat-card"><div class="stat-icon stat-icon-primary"><i class="bx bx-group"></i></div><div class="stat-info"><span class="stat-label">Cavalieres</span><span class="stat-value" id="dash-total-cavalieres">0</span></div></div>
+          <div class="stat-card"><div class="stat-icon stat-icon-success"><i class="bx bx-buildings"></i></div><div class="stat-info"><span class="stat-label">Ecuries</span><span class="stat-value" id="dash-total-ecuries">0</span></div></div>
           <div class="stat-card"><div class="stat-icon stat-icon-warning"><i class="bx bx-euro"></i></div><div class="stat-info"><span class="stat-label">CA du mois</span><span class="stat-value" id="dash-ca-mois">0 €</span></div></div>
           <div class="stat-card"><div class="stat-icon stat-icon-danger"><i class="bx bx-time"></i></div><div class="stat-info"><span class="stat-label">En attente</span><span class="stat-value" id="dash-en-attente">0</span></div></div>
         </div>
-        <div class="dashboard-grid">
-          <div class="widget-card widget-large"><div class="widget-head"><h3>É¬volution du chiffre d'affaires</h3></div><canvas id="chart-ca"></canvas></div>
-          <div class="widget-card"><div class="widget-head"><h3>Prochains concours</h3></div><ul class="liste-widget" id="dash-prochains-concours"></ul></div>
-        </div>
       </div>
-      <div id="ecuries" class="tab">
-        <div class="page-heading"><h2>É¬curies</h2><p>Gè¬¬re les centres et écuries partenaires.</p></div>
-        <div class="bloc-recherche"><form id="form-ecurie"><input type="text" id="ec-nom" placeholder="Nom" required><input type="text" id="ec-adresse" placeholder="Adresse" required><input type="text" id="ec-cp" placeholder="CP" required><input type="text" id="ec-ville" placeholder="Ville" required><button type="submit" class="btn-primary">Ajouter</button></form></div>
-        <div class="bloc-table"><table><thead><tr><th>Nom</th><th>Adresse</th><th>CP</th><th>Ville</th><th>Distance</th><th>Cavaliè¬¬res</th><th>Actions</th></tr></thead><tbody id="tbody-ecuries"></tbody></table></div>
-      </div>
-      <div id="cavalieres" class="tab">
-        <div class="page-heading"><h2>Cavaliè¬¬res</h2><p>Prospects, clientes et leurs chevaux.</p></div>
-        <div class="bloc-recherche"><form id="form-cavaliere"><input type="text" id="ca-nom" placeholder="Nom" required><input type="text" id="ca-prenom" placeholder="Pré¬¬nom" required><select id="ca-ecurie" required><option value="">Sé¬¬lectionner une écurie</option></select><select id="ca-statut" required><option value="prospect">Prospect</option><option value="cliente">Cliente</option></select><input type="text" id="ca-cheval" placeholder="Cheval"><button type="submit" class="btn-primary">Ajouter</button></form></div>
-        <div class="bloc-table"><table><thead><tr><th>Nom</th><th>É¬curie</th><th>Statut</th><th>Cheval</th><th>Factures</th><th>Actions</th></tr></thead><tbody id="tbody-cavalieres"></tbody></table></div>
-      </div>
-      <div id="concours" class="tab">
-        <div class="page-heading"><h2>Concours</h2><p>Planifie les é‚vè¬¬nements et bloque tes disponibilité¬¬s.</p></div>
-        <div class="bloc-recherche"><form id="form-concours"><input type="text" id="co-nom" placeholder="Nom" required><input type="text" id="co-lieu" placeholder="Lieu"><input type="date" id="co-debut" required><input type="date" id="co-fin" required><button type="submit" class="btn-primary">Ajouter</button></form></div>
-        <div class="bloc-table"><table><thead><tr><th>Nom</th><th>Lieu</th><th>Dates</th><th>Cavaliè¬¬res</th><th>Actions</th></tr></thead><tbody id="tbody-concours"></tbody></table></div>
-      </div>
-      <div id="prestations" class="tab">
-        <div class="page-heading"><h2>Grille tarifaire</h2><p>Prestations photos, vidè¬¬os et packs.</p></div>
-        <div class="bloc-recherche"><form id="form-prestation"><input type="text" id="pr-libelle" placeholder="Libellé¬¬" required><select id="pr-type" required><option value="photo">Photo</option><option value="video">Vidé¬¬o</option><option value="pack">Pack</option></select><input type="number" id="pr-quantite" placeholder="Qté¬¬" value="1" min="1" required><input type="number" id="pr-prix" placeholder="Prix" step="0.01" required><button type="submit" class="btn-primary">Ajouter</button></form></div>
-        <div class="bloc-table"><table><thead><tr><th>Libellé¬¬</th><th>Type</th><th>Qté¬¬</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="tbody-prestations"></tbody></table></div>
-      </div>
-      <div id="facturation" class="tab">
-        <div class="page-heading"><h2>Cré¬¬er une facture</h2><p>Sé¬¬lectionne la cavaliè¬¬re et les prestations.</p></div>
-        <div class="bloc-recherche"><label>Cavaliè¬¬re<select id="fa-cavaliere" required></select></label><div id="fa-prestations"></div><button id="fa-generer" class="btn-primary">Gé¬¬nè¬¬rer la facture</button></div>
-      </div>
-      <div id="factures" class="tab">
-        <div class="page-heading"><h2>Factures émise</h2><p>Suivi des paiements clients.</p></div>
-        <div class="bloc-table"><table><thead><tr><th>NÂ°</th><th>Date</th><th>Cavaliè¬¬re</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="tbody-factures"></tbody></table></div>
-      </div>
-      <div id="reglages" class="tab">
-        <div class="page-heading"><h2>Ré¬¬glages</h2><p>Informations de ton entreprise et paramè¬¬tres.</p></div>
-        <div class="settings-card"><div class="settings-card-head"><h3>Profil</h3><p>Modifie tes informations personnelles.</p></div><div class="settings-card-body"><button id="open-profile-modal" class="btn-primary">Modifier le profil</button></div></div>
-      </div>
+      <div id="ecuries" class="tab"><div class="page-heading"><h2>Ecuries</h2><p>Gere les centres et ecuries partenaires.</p></div></div>
+      <div id="cavalieres" class="tab"><div class="page-heading"><h2>Cavalieres</h2><p>Prospects, clientes et leurs chevaux.</p></div></div>
+      <div id="concours" class="tab"><div class="page-heading"><h2>Concours</h2><p>Planifie les evenements.</p></div></div>
+      <div id="prestations" class="tab"><div class="page-heading"><h2>Grille tarifaire</h2><p>Prestations photos, videos et packs.</p></div></div>
+      <div id="facturation" class="tab"><div class="page-heading"><h2>Creer une facture</h2><p>Selectionne la cavaliere et les prestations.</p></div></div>
+      <div id="factures" class="tab"><div class="page-heading"><h2>Factures emises</h2><p>Suivi des paiements clients.</p></div></div>
+      <div id="reglages" class="tab"><div class="page-heading"><h2>Reglages</h2><p>Informations de ton entreprise et parametres.</p></div></div>
     </main>
   </div>
 </div>
-<div id="profile-modal" class="modal"><div class="modal-contenu profile-modal-content"><button class="modal-close" id="close-profile-modal">&times;</button><h3>Modifier le profil</h3><form id="form-profil"><label>Pseudo<input type="text" id="pf-pseudo" required></label><label>Socié¬¬té¬¬<input type="text" id="pf-societe"></label><label>Adresse<input type="text" id="pf-adresse"></label><label>Code postal<input type="text" id="pf-code-postal"></label><label>Ville<input type="text" id="pf-ville"></label><button type="submit" class="btn-primary">Enregistrer</button></form></div></div>
+<div id="profile-modal" class="modal"><div class="modal-contenu profile-modal-content"><button class="modal-close" id="close-profile-modal">&times;</button><h3>Modifier le profil</h3><form id="form-profil"><label>Pseudo<input type="text" id="pf-pseudo" required></label><label>Societe<input type="text" id="pf-societe"></label><label>Adresse<input type="text" id="pf-adresse"></label><label>Code postal<input type="text" id="pf-code-postal"></label><label>Ville<input type="text" id="pf-ville"></label><button type="submit" class="btn-primary">Enregistrer</button></form></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
