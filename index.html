@@ -1,84 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#556ee6">
-  <title>ShootnLook</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Equestre</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
 </head>
 <body>
-  <section id="auth-screen" class="auth-screen">
-    <div class="auth-card">
-      <div class="auth-brand"><span class="brand-icon"><i class="bx bx-camera"></i></span><span>ShootnLook</span></div>
-      <h1>Bienvenue</h1>
-      <p id="auth-subtitle">Connecte-toi pour accéder à ton espace privé.</p>
-      <div id="auth-message" class="auth-message" role="alert"></div>
-      <form id="auth-form" novalidate>
-        <label>Adresse e-mail<input id="auth-email" type="email" autocomplete="email" inputmode="email" required></label>
-        <label>Mot de passe<input id="auth-password" type="password" autocomplete="current-password" minlength="6" required></label>
-        <button id="auth-submit" class="btn-primary" type="submit">Se connecter</button>
-      </form>
-      <button id="auth-switch" class="text-button" type="button">Créer un compte</button>
-    </div>
-  </section>
-  <div id="app-shell" class="app-shell" hidden>
-    <div class="layout">
-      <aside id="sidebar" aria-label="Navigation">
-        <div class="sidebar-logo"><span class="brand-icon"><i class="bx bx-camera"></i></span><span class="brand-name">ShootnLook</span></div>
-        <nav id="tabs">
-          <p class="menu-title">MENU</p>
-          <button type="button" class="active" data-tab="dashboard"><i class="bx bx-home-circle"></i><span>Tableau de bord</span></button>
-          <button type="button" data-tab="ecuries"><i class="bx bx-buildings"></i><span>Écuries</span></button>
-          <button type="button" data-tab="cavalieres"><i class="bx bx-group"></i><span>Cavalières</span></button>
-          <button type="button" data-tab="concours"><i class="bx bx-trophy"></i><span>Concours</span></button>
-          <button type="button" data-tab="prestations"><i class="bx bx-camera"></i><span>Grille tarifaire</span></button>
-          <button type="button" data-tab="facturation"><i class="bx bx-receipt"></i><span>Créer une facture</span></button>
-          <button type="button" data-tab="factures"><i class="bx bx-file"></i><span>Factures émises</span></button>
-          <button type="button" data-tab="reglages"><i class="bx bx-cog"></i><span>Réglages</span></button>
-        </nav>
-      </aside>
-      <div id="sidebar-backdrop"></div>
-      <div class="content-wrapper">
-        <header id="topbar">
-          <button type="button" id="sidebar-toggle" class="topbar-icon-btn" aria-label="Ouvrir le menu"><i class="bx bx-menu"></i></button>
-          <h1 id="page-title">Tableau de bord</h1>
-          <div class="topbar-menu-wrap">
-            <button type="button" id="user-toggle" class="user-button"><span class="user-avatar">A</span><span id="topbar-user-name" class="user-name">Admin</span></button>
-            <div id="user-menu" class="dropdown-menu">
-              <div class="user-dropdown-head"><span class="user-avatar large">A</span><div><strong id="menu-user-name">Admin</strong><small id="menu-user-email"></small></div></div>
-              <button type="button" id="edit-profile-btn"><i class="bx bx-user"></i> Modifier le profil</button>
-              <button type="button" id="sign-out-btn"><i class="bx bx-log-out"></i> Se déconnecter</button>
-            </div>
+<div class="layout">
+  <aside id="sidebar">
+    <div class="sidebar-logo"><span class="brand-icon">📷</span><span class="brand-name">ShootnLook</span></div>
+    <nav id="tabs">
+      <div class="menu-title">Menu</div>
+      <button data-tab="dashboard" class="active"><span class="icon bx bx-home-circle"></span>Tableau de bord</button>
+      <button data-tab="ecuries"><span class="icon bx bx-buildings"></span>Ecuries</button>
+      <button data-tab="cavalieres"><span class="icon bx bx-group"></span>Cavalieres</button>
+      <button data-tab="concours"><span class="icon bx bx-trophy"></span>Concours</button>
+      <button data-tab="prestations"><span class="icon bx bx-camera"></span>Grille tarifaire</button>
+      <button data-tab="facturation"><span class="icon bx bx-receipt"></span>Creer une facture</button>
+      <button data-tab="factures"><span class="icon bx bx-file"></span>Factures emises</button>
+      <button data-tab="reglages"><span class="icon bx bx-cog"></span>Reglages</button>
+    </nav>
+  </aside>
+  <div class="content-wrapper">
+    <header id="topbar">
+      <button id="sidebar-toggle" class="topbar-icon-btn"><i class="bx bx-menu"></i></button>
+      <h1 id="page-title">Tableau de bord</h1>
+      <div class="topbar-actions">
+        <button id="settings-toggle" class="topbar-icon-btn"><i class="bx bx-cog"></i></button>
+        <div class="topbar-menu-wrap">
+          <button id="user-toggle" class="user-button"><span class="user-avatar">A</span><span class="user-name">Admin</span></button>
+          <div id="user-menu" class="dropdown-menu user-dropdown">
+            <div class="user-dropdown-head"><span class="user-avatar large">A</span><div><strong>Admin</strong><small>Admin</small></div></div>
+            <button id="edit-profile-btn"><i class="bx bx-user"></i>Modifier le profil</button>
+            <button data-open-tab="reglages"><i class="bx bx-cog"></i>Reglages</button>
           </div>
-        </header>
-        <main>
-          <section id="connection-status" class="connection-status loading" aria-live="polite"><i class="bx bx-loader-alt bx-spin"></i><span>Connexion à la base de données…</span></section>
-          <section id="dashboard" class="tab active">
-            <div class="page-heading"><div><h2>Bonjour <span id="dashboard-user-name">Admin</span> !</h2><p>Voici un aperçu de ton activité photographique.</p></div></div>
-            <div class="stats-grid">
-              <article class="stat-card"><span class="stat-icon primary"><i class="bx bx-group"></i></span><div><span class="stat-label">Cavalières</span><strong class="stat-value" id="dash-total-cavalieres">—</strong></div></article>
-              <article class="stat-card"><span class="stat-icon success"><i class="bx bx-buildings"></i></span><div><span class="stat-label">Écuries</span><strong class="stat-value" id="dash-total-ecuries">—</strong></div></article>
-              <article class="stat-card"><span class="stat-icon warning"><i class="bx bx-euro"></i></span><div><span class="stat-label">CA du mois</span><strong class="stat-value" id="dash-ca-mois">—</strong></div></article>
-              <article class="stat-card"><span class="stat-icon danger"><i class="bx bx-time"></i></span><div><span class="stat-label">En attente</span><strong class="stat-value" id="dash-en-attente">—</strong></div></article>
-            </div>
-            <section class="panel"><h3>État de synchronisation</h3><p id="sync-summary">Connexion en cours…</p><button type="button" class="btn-primary" id="retry-connection"><i class="bx bx-refresh"></i> Réessayer</button></section>
-          </section>
-          <section id="ecuries" class="tab"><div class="page-heading"><div><h2>Écuries</h2><p>Gère les centres et écuries partenaires.</p></div></div><section class="panel"><p id="ecuries-summary">Chargement…</p></section></section>
-          <section id="cavalieres" class="tab"><div class="page-heading"><div><h2>Cavalières</h2><p>Prospects, clientes et leurs chevaux.</p></div></div><section class="panel"><p id="cavalieres-summary">Chargement…</p></section></section>
-          <section id="concours" class="tab"><div class="page-heading"><div><h2>Concours</h2><p>Planifie tes événements et tes disponibilités.</p></div></div><section class="panel"><p id="concours-summary">Chargement…</p></section></section>
-          <section id="prestations" class="tab"><div class="page-heading"><div><h2>Grille tarifaire</h2><p>Prestations photos, vidéos et packs.</p></div></div></section>
-          <section id="facturation" class="tab"><div class="page-heading"><div><h2>Créer une facture</h2><p>Sélectionne une cavalière et les prestations.</p></div></div></section>
-          <section id="factures" class="tab"><div class="page-heading"><div><h2>Factures émises</h2><p>Suivi des paiements clients.</p></div></div><section class="panel"><p id="factures-summary">Chargement…</p></section></section>
-          <section id="reglages" class="tab"><div class="page-heading"><div><h2>Réglages</h2><p>Informations de ton entreprise et paramètres.</p></div></div><section class="panel"><button type="button" id="edit-profile-page-btn" class="btn-primary">Modifier le profil</button></section></section>
-        </main>
+        </div>
       </div>
-    </div>
+    </header>
+    <main>
+      <div id="dashboard" class="tab active">
+        <div class="page-heading"><h2>Bonjour Admin !</h2><p>Voici un apercu de ton activite photographique.</p></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon stat-icon-primary"><i class="bx bx-group"></i></div><div class="stat-info"><span class="stat-label">Cavalieres</span><span class="stat-value" id="dash-total-cavalieres">0</span></div></div>
+          <div class="stat-card"><div class="stat-icon stat-icon-success"><i class="bx bx-buildings"></i></div><div class="stat-info"><span class="stat-label">Ecuries</span><span class="stat-value" id="dash-total-ecuries">0</span></div></div>
+          <div class="stat-card"><div class="stat-icon stat-icon-warning"><i class="bx bx-euro"></i></div><div class="stat-info"><span class="stat-label">CA du mois</span><span class="stat-value" id="dash-ca-mois">0 €</span></div></div>
+          <div class="stat-card"><div class="stat-icon stat-icon-danger"><i class="bx bx-time"></i></div><div class="stat-info"><span class="stat-label">En attente</span><span class="stat-value" id="dash-en-attente">0</span></div></div>
+        </div>
+      </div>
+      <div id="ecuries" class="tab"><div class="page-heading"><h2>Ecuries</h2><p>Gere les centres et ecuries partenaires.</p></div></div>
+      <div id="cavalieres" class="tab"><div class="page-heading"><h2>Cavalieres</h2><p>Prospects, clientes et leurs chevaux.</p></div></div>
+      <div id="concours" class="tab"><div class="page-heading"><h2>Concours</h2><p>Planifie les evenements.</p></div></div>
+      <div id="prestations" class="tab"><div class="page-heading"><h2>Grille tarifaire</h2><p>Prestations photos, videos et packs.</p></div></div>
+      <div id="facturation" class="tab"><div class="page-heading"><h2>Creer une facture</h2><p>Selectionne la cavaliere et les prestations.</p></div></div>
+      <div id="factures" class="tab"><div class="page-heading"><h2>Factures emises</h2><p>Suivi des paiements clients.</p></div></div>
+      <div id="reglages" class="tab"><div class="page-heading"><h2>Reglages</h2><p>Informations de ton entreprise et parametres.</p></div></div>
+    </main>
   </div>
-  <div id="profile-modal" class="modal" aria-hidden="true"><div class="modal-content"><button type="button" id="close-profile-modal" class="modal-close" aria-label="Fermer">×</button><h2>Modifier le profil</h2><form id="form-profil"><label>Pseudo<input id="pf-pseudo" required></label><label>Société<input id="pf-societe"></label><label>Adresse<input id="pf-adresse"></label><label>Code postal<input id="pf-code-postal"></label><label>Ville<input id="pf-ville"></label><button class="btn-primary" type="submit">Enregistrer</button></form></div></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+</div>
+<div id="profile-modal" class="modal"><div class="modal-contenu profile-modal-content"><button class="modal-close" id="close-profile-modal">&times;</button><h3>Modifier le profil</h3><form id="form-profil"><label>Pseudo<input type="text" id="pf-pseudo" required></label><label>Societe<input type="text" id="pf-societe"></label><label>Adresse<input type="text" id="pf-adresse"></label><label>Code postal<input type="text" id="pf-code-postal"></label><label>Ville<input type="text" id="pf-ville"></label><button type="submit" class="btn-primary">Enregistrer</button></form></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
