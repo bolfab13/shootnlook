@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = id => document.getElementById(id);
-  const profileModal = $('profile-modal');
   const root = document.documentElement;
   const layout = document.querySelector('.layout');
   const euro = n => `${Number(n || 0).toFixed(2)} €`;
@@ -20,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeMenus = () => {$('settings-menu')?.classList.remove('open');$('user-menu')?.classList.remove('open')};
   const openTab = name => document.querySelector(`#tabs button[data-tab="${name}"]`)?.click();
   function loadLocalProfile(){const p=localStorage.getItem('profil_pseudo')||'Admin',s=localStorage.getItem('profil_societe')||'',a=localStorage.getItem('profil_adresse')||'',cp=localStorage.getItem('profil_code_postal')||'',v=localStorage.getItem('profil_ville')||'';[['pf-pseudo',p],['pf-societe',s],['pf-adresse',a],['pf-code-postal',cp],['pf-ville',v],['topbar-user-name',p],['menu-user-name',p],['dashboard-user-name',p]].forEach(([id,val])=>{if($(id))$(id).value!==undefined?$(id).value=val:$(id).textContent=val});document.querySelectorAll('.user-avatar').forEach(x=>x.textContent=p[0]?.toUpperCase()||'A')}
-  profileModal?.classList.remove('visible');
   document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab)?.classList.add('active');$('page-title').textContent=titles[b.dataset.tab]||'';layout.classList.remove('mobile-menu');closeMenus();if(b.dataset.tab==='dashboard')loadDashboard()}));
   $('sidebar-toggle')?.addEventListener('click',()=>innerWidth<=780?layout.classList.toggle('mobile-menu'):setSidebar(root.dataset.sidebar==='compact'?'normal':'compact'));
   $('settings-toggle')?.addEventListener('click',e=>{e.stopPropagation();$('user-menu').classList.remove('open');$('settings-menu').classList.toggle('open')});
@@ -29,15 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   $('setting-theme')?.addEventListener('change',e=>setTheme(e.target.value));
   $('setting-layout')?.addEventListener('change',e=>setLayout(e.target.value));
   $('setting-sidebar')?.addEventListener('change',e=>setSidebar(e.target.value));
-  $('edit-profile-btn')?.addEventListener('click',()=>{profileModal?.classList.add('visible');closeMenus()});
-  $('fermer-profil')?.addEventListener('click', () => profileModal?.classList.remove('visible'));
-  profileModal?.addEventListener('click', event => {
-    if (event.target === profileModal) profileModal.classList.remove('visible');
-  });
-  $('open-profile-modal')?.addEventListener('click',()=>profileModal?.classList.add('visible'));
+  $('edit-profile-btn')?.addEventListener('click',()=>{$('profile-modal').classList.add('visible');closeMenus()});
+  $('close-profile-modal')?.addEventListener('click',()=>$('profile-modal').classList.remove('visible'));
+  $('open-profile-modal')?.addEventListener('click',()=>$('profile-modal').classList.add('visible'));
   $('open-reglages-btn')?.addEventListener('click',()=>{closeMenus();openTab('reglages')});
   document.querySelectorAll('[data-open-tab]').forEach(b=>b.addEventListener('click',()=>openTab(b.dataset.openTab)));
-  $('form-profil')?.addEventListener('submit',async e=>{e.preventDefault();const p=$('pf-pseudo').value.trim()||'Admin',s=$('pf-societe').value.trim(),a=$('pf-adresse').value.trim(),cp=$('pf-code-postal').value.trim(),v=$('pf-ville').value.trim();localStorage.setItem('profil_pseudo',p);localStorage.setItem('profil_societe',s);localStorage.setItem('profil_adresse',a);localStorage.setItem('profil_code_postal',cp);localStorage.setItem('profil_ville',v);if(settings.id)await db.from('reglages').update({nom_entreprise:s,adresse:a,code_postal_entreprise:cp,ville_entreprise:v}).eq('id',settings.id);loadLocalProfile();profileModal?.classList.remove('visible')});
+  $('form-profil')?.addEventListener('submit',async e=>{e.preventDefault();const p=$('pf-pseudo').value.trim()||'Admin',s=$('pf-societe').value.trim(),a=$('pf-adresse').value.trim(),cp=$('pf-code-postal').value.trim(),v=$('pf-ville').value.trim();localStorage.setItem('profil_pseudo',p);localStorage.setItem('profil_societe',s);localStorage.setItem('profil_adresse',a);localStorage.setItem('profil_code_postal',cp);localStorage.setItem('profil_ville',v);if(settings.id)await db.from('reglages').update({nom_entreprise:s,adresse:a,code_postal_entreprise:cp,ville_entreprise:v}).eq('id',settings.id);loadLocalProfile();$('profile-modal').classList.remove('visible')});
   async function loadSettings(){const r=await db.from('reglages').select('*').single();if(r.data){settings=r.data;Object.assign(settings,r.data)}}
   async function loadEcuries(){const r=await db.from('ecuries').select('*').order('nom');ecuries=r.data||[]}
   async function loadCavalieres(){const r=await db.from('cavalieres').select('*').order('nom');cavaliers=r.data||[]}
