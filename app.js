@@ -1,90 +1,238 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const $ = id => document.getElementById(id);
-  const titles = { dashboard:'Tableau de bord', ecuries:'Écuries', cavalieres:'Cavalières', concours:'Concours', prestations:'Grille tarifaire', facturation:'Créer une facture', factures:'Factures émises', reglages:'Réglages' };
-  const state = { db: null, user: null, profile: null, signingUp: false };
-  const authScreen = $('auth-screen');
-  const appShell = $('app-shell');
+// app.js - Shoot'n'Look
+// Gestion de l'authentification Supabase et du profil utilisateur
 
-  function showAuthMessage(message, type='error') { const box=$('auth-message'); box.textContent=message; box.className=`auth-message show ${type}`; }
-  function clearAuthMessage() { const box=$('auth-message'); box.textContent=''; box.className='auth-message'; }
-  function setStatus(kind, message) { const box=$('connection-status'); if(!box) return; box.className=`connection-status ${kind}`; const icon=kind==='ok'?'bx-check-circle':kind==='error'?'bx-error-circle':'bx-loader-alt bx-spin'; box.innerHTML=`<i class="bx ${icon}"></i><span>${message}</span>`; }
-  function text(id,value){const el=$(id);if(el)el.textContent=value;}
-  function euro(value){return `${Number(value||0).toFixed(2).replace('.',',')} €`;}
-  function message(error){return error?.message||error?.details||error?.hint||'Erreur inconnue';}
-  function closeUserMenu(){$('user-menu')?.classList.remove('open');}
-  function resetAuthForm(){ $('auth-form')?.reset(); }
+// On suppose que config.js expose :
+// - const SUPABASE_URL
+// - const SUPABASE_ANON_KEY
+// et que Supabase est chargé via le script CDN dans index.html
 
-  function setAuthMode(signUp){
-    state.signingUp=signUp;
-    text('auth-subtitle',signUp?'Crée ton compte pour accéder à ton espace privé.':'Connecte-toi pour accéder à ton espace privé.');
-    text('auth-submit',signUp?'Créer mon compte':'Se connecter');
-    text('auth-switch',signUp?'J’ai déjà un compte':'Créer un compte');
-    $('auth-password').setAttribute('autocomplete',signUp?'new-password':'current-password');
-    clearAuthMessage();
-  }
-  function showAuth(){ appShell.hidden=true; authScreen.hidden=false; closeUserMenu(); document.body.classList.remove('menu-open'); }
-  function showApp(){ authScreen.hidden=true; appShell.hidden=false; }
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  function updateUserUI(){
-    const name=state.profile?.pseudo || state.user?.email?.split('@')[0] || 'Utilisateur';
-    text('dashboard-user-name',name);text('topbar-user-name',name);text('menu-user-name',name);text('menu-user-email',state.user?.email||'');
-    document.querySelectorAll('.user-avatar').forEach(el=>el.textContent=name.charAt(0).toUpperCase());
-    $('pf-pseudo').value=state.profile?.pseudo||'';$('pf-societe').value=state.profile?.societe||'';$('pf-adresse').value=state.profile?.adresse||'';$('pf-code-postal').value=state.profile?.code_postal||'';$('pf-ville').value=state.profile?.ville||'';
+// Élé··ments DOM
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const profileBtn = document.getElementById('profile-btn');
+const profileModal = document.getElementById('profile-modal');
+const profileOverlay = document.getElementById('profile-overlay');
+const closeProfileBtn = document.getElementById('close-profile');
+const saveProfileBtn = document.getElementById('save-profile');
+const profileForm = document.getElementById('profile-form');
+const profileMessage = document.getElementById('profile-message');
+
+// Éé··tat
+let currentUser = null;
+
+// Utilitaires d'affichage de messages
+function showProfileMessage(text, type = 'info') {
+  if (!profileMessage) return;
+  profileMessage.textContent = text;
+  profileMessage.className = 'profile-message'; // reset
+  if (type === 'success') {
+    profileMessage.classList.add('success');
+  } else if (type === 'error') {
+    profileMessage.classList.add('error');
   }
-  async function loadProfile(){
-    const {data,error}=await state.db.from('profiles').select('*').eq('id',state.user.id).maybeSingle();
-    if(error) throw new Error(`Profil : ${message(error)}`);
-    if(data){state.profile=data;return;}
-    const initial={id:state.user.id,pseudo:state.user.email?.split('@')[0]||'Utilisateur'};
-    const {data:created,error:createError}=await state.db.from('profiles').insert(initial).select().single();
-    if(createError) throw new Error(`Création du profil : ${message(createError)}`);
-    state.profile=created;
-  }
-  async function selectAll(table,order){let q=state.db.from(table).select('*');if(order)q=q.order(order);const {data,error}=await q;if(error)throw new Error(`${table} : ${message(error)}`);return data||[];}
-  async function loadData(){
-    setStatus('loading','Chargement de tes données privées…');
-    const [ecuries,cavalieres,concours,factures]=await Promise.all([selectAll('ecuries','nom'),selectAll('cavalieres','nom'),selectAll('concours','date_debut'),selectAll('factures','date_facture')]);
-    const paid=factures.filter(f=>String(f.statut_paiement||'').toLowerCase()==='payee');
-    const pending=factures.filter(f=>['en_attente','en_retard'].includes(String(f.statut_paiement||'').toLowerCase()));
-    const now=new Date();
-    const monthly=paid.filter(f=>{const d=new Date(f.date_facture||f.date_creation);return !Number.isNaN(d)&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((sum,f)=>sum+Number(f.montant_total||0),0);
-    text('dash-total-ecuries',ecuries.length);text('dash-total-cavalieres',cavalieres.length);text('dash-en-attente',pending.length);text('dash-ca-mois',euro(monthly));
-    text('ecuries-summary',`${ecuries.length} écurie(s) chargée(s) pour ton compte.`);text('cavalieres-summary',`${cavalieres.length} cavalière(s) chargée(s) pour ton compte.`);text('concours-summary',`${concours.length} concours chargé(s) pour ton compte.`);text('factures-summary',`${factures.length} facture(s) privée(s) chargée(s).`);
-    text('sync-summary',`Connexion réussie : ${ecuries.length} écurie(s), ${cavalieres.length} cavalière(s), ${concours.length} concours et ${factures.length} facture(s) ont été lus pour ton compte.`);
-    setStatus('ok','Connecté à Supabase. Tes données privées sont synchronisées.');
-  }
-  async function signedIn(user){
-    state.user=user;showApp();
-    try{await loadProfile();updateUserUI();await loadData();}
-    catch(error){console.error(error);setStatus('error',`Données indisponibles : ${error.message}`);text('sync-summary','Vérifie les policies RLS et que les lignes existantes ont bien ton user_id.');}
-  }
-  async function boot(){
-    if(!window.supabase||typeof SUPABASE_URL==='undefined'||typeof SUPABASE_ANON_KEY==='undefined'){showAuth();showAuthMessage('config.js ou la bibliothèque Supabase n’est pas chargé.');return;}
-    state.db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    const {data:{session}}=await state.db.auth.getSession();
-    if(session?.user) await signedIn(session.user); else showAuth();
-    state.db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){state.user=null;state.profile=null;showAuth();}if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session?.user){setTimeout(()=>signedIn(session.user),0);}});
+  profileMessage.style.display = 'block';
+}
+
+function clearProfileMessage() {
+  if (!profileMessage) return;
+  profileMessage.textContent = '';
+  profileMessage.style.display = 'none';
+}
+
+// Gestion de la modale de profil
+function openProfileModal() {
+  if (!profileModal) return;
+  profileModal.style.display = 'flex';
+  clearProfileMessage();
+  loadProfile();
+}
+
+function closeProfileModal() {
+  if (!profileModal) return;
+  profileModal.style.display = 'none';
+  clearProfileMessage();
+}
+
+// Chargement du profil depuis Supabase
+async function loadProfile() {
+  if (!currentUser) {
+    showProfileMessage('Aucun utilisateur connecté.', 'error');
+    return;
   }
 
-  $('auth-switch')?.addEventListener('click',()=>setAuthMode(!state.signingUp));
-  $('auth-form')?.addEventListener('submit',async event=>{
-    event.preventDefault();clearAuthMessage();const email=$('auth-email').value.trim();const password=$('auth-password').value;if(!email||!password)return showAuthMessage('Saisis ton e-mail et ton mot de passe.');
-    $('auth-submit').disabled=true;
-    try{
-      if(state.signingUp){const {data,error}=await state.db.auth.signUp({email,password});if(error)throw error;if(data.session){showAuthMessage('Compte créé et connexion réussie.','ok');}else{showAuthMessage('Compte créé. Vérifie ton e-mail pour confirmer ton inscription.','ok');resetAuthForm();}}
-      else {const {error}=await state.db.auth.signInWithPassword({email,password});if(error)throw error;}
-    }catch(error){showAuthMessage(message(error));}
-    finally{$('auth-submit').disabled=false;}
+  if (!profileForm) return;
+
+  // Déé··sactiver le bouton pendant le chargement
+  if (saveProfileBtn) saveProfileBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, email, phone, address, city, zip, country')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = aucune ligne trouvéé··e
+      showProfileMessage('Erreur lors du chargement du profil : ' + error.message, 'error');
+      if (saveProfileBtn) saveProfileBtn.disabled = false;
+      return;
+    }
+
+    // Remplir le formulaire si un profil existe
+    if (data) {
+      if (profileForm.username) profileForm.username.value = data.username || '';
+      if (profileForm.full_name) profileForm.full_name.value = data.full_name || '';
+      if (profileForm.email) profileForm.email.value = data.email || '';
+      if (profileForm.phone) profileForm.phone.value = data.phone || '';
+      if (profileForm.address) profileForm.address.value = data.address || '';
+      if (profileForm.city) profileForm.city.value = data.city || '';
+      if (profileForm.zip) profileForm.zip.value = data.zip || '';
+      if (profileForm.country) profileForm.country.value = data.country || '';
+    } else {
+      // Aucun profil existant : on part de champs vides
+      if (profileForm.username) profileForm.username.value = '';
+      if (profileForm.full_name) profileForm.full_name.value = '';
+      if (profileForm.email) profileForm.email.value = currentUser.email || '';
+      if (profileForm.phone) profileForm.phone.value = '';
+      if (profileForm.address) profileForm.address.value = '';
+      if (profileForm.city) profileForm.city.value = '';
+      if (profileForm.zip) profileForm.zip.value = '';
+      if (profileForm.country) profileForm.country.value = '';
+    }
+  } catch (err) {
+    showProfileMessage('Erreur inattendue lors du chargement du profil.', 'error');
+    console.error(err);
+  } finally {
+    if (saveProfileBtn) saveProfileBtn.disabled = false;
+  }
+}
+
+// Enregistrement du profil (upsert)
+async function saveProfile() {
+  if (!currentUser) {
+    showProfileMessage('Vous devez êé··tre connecté pour enregistrer un profil.', 'error');
+    return;
+  }
+
+  if (!profileForm) return;
+
+  clearProfileMessage();
+
+  // Construire l'objet profil
+  const profileData = {
+    id: currentUser.id,
+    username: profileForm.username ? profileForm.username.value.trim() : null,
+    full_name: profileForm.full_name ? profileForm.full_name.value.trim() : null,
+    email: profileForm.email ? profileForm.email.value.trim() : null,
+    phone: profileForm.phone ? profileForm.phone.value.trim() : null,
+    address: profileForm.address ? profileForm.address.value.trim() : null,
+    city: profileForm.city ? profileForm.city.value.trim() : null,
+    zip: profileForm.zip ? profileForm.zip.value.trim() : null,
+    country: profileForm.country ? profileForm.country.value.trim() : null,
+  };
+
+  if (saveProfileBtn) saveProfileBtn.disabled = true;
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(profileData, { onConflict: 'id' })
+      .select();
+
+    if (error) {
+      showProfileMessage('É·É·chec de l'enregistrement : ' + error.message, 'error');
+      console.error('Erreur Supabase lors de l'upsert du profil :', error);
+      if (saveProfileBtn) saveProfileBtn.disabled = false;
+      return;
+    }
+
+    showProfileMessage('Profil enregistré avec succès.', 'success');
+
+    // Fermer la modale après un court délai
+    setTimeout(() => {
+      closeProfileModal();
+    }, 900);
+  } catch (err) {
+    showProfileMessage('Erreur inattendue lors de l'enregistrement.', 'error');
+    console.error(err);
+    if (saveProfileBtn) saveProfileBtn.disabled = false;
+  }
+}
+
+// Initialisation de l'auth
+async function initAuth() {
+  // Véé··rifier la session au chargement
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    currentUser = session.user;
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
+    if (profileBtn) profileBtn.style.display = 'inline-block';
+  } else {
+    currentUser = null;
+    if (loginBtn) loginBtn.style.display = 'inline-block';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    if (profileBtn) profileBtn.style.display = 'none';
+  }
+
+  // Éé··couteurs globaux
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      await supabase.auth.signInWithPopup({
+        provider: 'google',
+      });
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.reload();
+    });
+  }
+
+  if (profileBtn) {
+    profileBtn.addEventListener('click', () => {
+      if (!currentUser) {
+        alert('Veuillez vous connecter pour accéder à votre profil.');
+        return;
+      }
+      openProfileModal();
+    });
+  }
+
+  if (closeProfileBtn) {
+    closeProfileBtn.addEventListener('click', closeProfileModal);
+  }
+
+  if (profileOverlay) {
+    profileOverlay.addEventListener('click', closeProfileModal);
+  }
+
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener('click', saveProfile);
+  }
+
+  // ÉÉ·É·couter les changements d'auth (connexion / déconnexion)
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      if (loginBtn) loginBtn.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      if (profileBtn) profileBtn.style.display = 'inline-block';
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (profileBtn) profileBtn.style.display = 'none';
+      if (profileModal) profileModal.style.display = 'none';
+    }
   });
-  document.querySelectorAll('#tabs button[data-tab]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('#tabs button[data-tab]').forEach(item=>item.classList.remove('active'));document.querySelectorAll('.tab').forEach(item=>item.classList.remove('active'));button.classList.add('active');$(button.dataset.tab)?.classList.add('active');text('page-title',titles[button.dataset.tab]||'ShootnLook');document.body.classList.remove('menu-open');closeUserMenu();}));
-  $('sidebar-toggle')?.addEventListener('click',()=>document.body.classList.toggle('menu-open'));
-  $('sidebar-backdrop')?.addEventListener('click',()=>document.body.classList.remove('menu-open'));
-  $('user-toggle')?.addEventListener('click',event=>{event.stopPropagation();$('user-menu')?.classList.toggle('open');});
-  document.addEventListener('click',event=>{if(!event.target.closest('.topbar-menu-wrap'))closeUserMenu();});
-  const openProfile=()=>{closeUserMenu();$('profile-modal')?.classList.add('visible');};
-  $('edit-profile-btn')?.addEventListener('click',openProfile);$('edit-profile-page-btn')?.addEventListener('click',openProfile);$('close-profile-modal')?.addEventListener('click',()=>$('profile-modal')?.classList.remove('visible'));
-  $('form-profil')?.addEventListener('submit',async event=>{event.preventDefault();if(!state.user)return;const patch={pseudo:$('pf-pseudo').value.trim(),societe:$('pf-societe').value.trim(),adresse:$('pf-adresse').value.trim(),code_postal:$('pf-code-postal').value.trim(),ville:$('pf-ville').value.trim(),updated_at:new Date().toISOString()};const {data,error}=await state.db.from('profiles').update(patch).eq('id',state.user.id).select().single();if(error){alert(`Impossible d’enregistrer le profil : ${message(error)}`);return;}state.profile=data;updateUserUI();$('profile-modal')?.classList.remove('visible');});
-  $('sign-out-btn')?.addEventListener('click',async()=>{closeUserMenu();await state.db.auth.signOut();});
-  $('retry-connection')?.addEventListener('click',async()=>{if(state.user)await signedIn(state.user);});
-  setAuthMode(false);boot();
-});
+}
+
+// Déé··marrage
+document.addEventListener('DOMContentLoaded', initAuth);
