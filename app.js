@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeUserMenu() { $('user-menu')?.classList.remove('open'); }
 
-  // Navigation
   document.querySelectorAll('#tabs button[data-tab]').forEach(button =>
     button.addEventListener('click', () => {
       document.querySelectorAll('#tabs button[data-tab]').forEach(item => item.classList.remove('active'));
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('user-toggle')?.addEventListener('click', event => { event.stopPropagation(); $('user-menu')?.classList.toggle('open'); });
   document.addEventListener('click', event => { if (!event.target.closest('.topbar-menu-wrap')) closeUserMenu(); });
 
-  // Profil
   $('edit-profile-btn')?.addEventListener('click', () => { closeUserMenu(); $('profile-modal')?.classList.add('visible'); });
   $('open-profile-modal')?.addEventListener('click', () => $('profile-modal')?.classList.add('visible'));
   $('close-profile-modal')?.addEventListener('click', () => $('profile-modal')?.classList.remove('visible'));
@@ -69,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('profile-modal')?.classList.remove('visible');
   });
 
-  // Chargement des données
   async function selectAll(table, order) {
     let query = state.db.from(table).select('*');
     if (order) query = query.order(order);
@@ -81,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadData() {
     setStatus('loading', 'Connexion à la base de données…');
     if (!window.supabase || typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined')
-      throw new Error('Supabase ou config.js n'est pas chargé.');
+      throw new Error('Supabase ou config.js n\'est pas chargé.');
 
     state.db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -97,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
     [state.reglages, state.ecuries, state.cavalieres, state.concours, state.prestations, state.factures] = results;
     state.reglages = state.reglages[0] || null;
 
-    // Stats dashboard
     const paid = state.factures.filter(f => String(f.statut_paiement || f.statut || '').toLowerCase() === 'payee');
     const pending = state.factures.filter(f => ['en_attente','en_retard','pending'].includes(String(f.statut_paiement || f.statut || '').toLowerCase()));
     const now = new Date();
@@ -110,8 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     text('dash-total-cavalieres', state.cavalieres.length);
     text('dash-en-attente', pending.length);
     text('dash-ca-mois', euro(monthly));
-
-    // Résumés
     text('ecuries-summary', `${state.ecuries.length} écurie(s) chargée(s) depuis Supabase.`);
     text('cavalieres-summary', `${state.cavalieres.length} cavalière(s) chargée(s) depuis Supabase.`);
     text('concours-summary', `${state.concours.length} concours chargé(s) depuis Supabase.`);
@@ -122,189 +116,70 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus('ok', 'Connexion Supabase établie. Les données sont synchronisées.');
   }
 
-  // Rendu des listes dans les sections
   function renderEcuries() {
     const panel = $('ecuries')?.querySelector('.panel');
     if (!panel) return;
-    if (!state.ecuries.length) {
-      panel.innerHTML = '<p>Aucune écurie pour le moment.</p>';
-      return;
-    }
-    const html = state.ecuries.map(e => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)">
-        <strong>${esc(e.nom)}</strong><br>
-        ${e.adresse ? esc(e.adresse) + '<br>' : ''}
-        ${e.code_postal || e.ville ? esc([e.code_postal, e.ville].filter(Boolean).join(' ')) + '<br>' : ''}
-        ${e.contact_nom ? `Contact : ${esc(e.contact_nom)}<br>` : ''}
-        ${e.notes ? `<small>${esc(e.notes)}</small>` : ''}
-      </div>
-    `).join('');
-    panel.innerHTML = html;
+    if (!state.ecuries.length) { panel.innerHTML = '<p>Aucune écurie pour le moment.</p>'; return; }
+    panel.innerHTML = state.ecuries.map(e => `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>${esc(e.nom)}</strong><br>${e.adresse ? esc(e.adresse) + '<br>' : ''}${e.code_postal || e.ville ? esc([e.code_postal, e.ville].filter(Boolean).join(' ')) + '<br>' : ''}${e.contact_nom ? 'Contact : ' + esc(e.contact_nom) + '<br>' : ''}${e.notes ? '<small>' + esc(e.notes) + '</small>' : ''}</div>`).join('');
   }
 
   function renderCavalieres() {
     const panel = $('cavalieres')?.querySelector('.panel');
     if (!panel) return;
-    if (!state.cavalieres.length) {
-      panel.innerHTML = '<p>Aucune cavalière pour le moment.</p>';
-      return;
-    }
-    const getEcurieName = id => {
-      const e = state.ecuries.find(x => x.id === id);
-      return e ? e.nom : '—';
-    };
-    const html = state.cavalieres.map(c => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)">
-        <strong>${esc(c.prenom)} ${esc(c.nom)}</strong><br>
-        Écurie : ${esc(getEcurieName(c.ecurie_id))}<br>
-        ${c.nom_cheval ? `Cheval : ${esc(c.nom_cheval)}<br>` : ''}
-        ${c.telephone ? `Tél : ${esc(c.telephone)}<br>` : ''}
-        ${c.email ? `Email : ${esc(c.email)}<br>` : ''}
-        <small>Statut : ${esc(c.statut || 'prospect')}</small>
-      </div>
-    `).join('');
-    panel.innerHTML = html;
+    if (!state.cavalieres.length) { panel.innerHTML = '<p>Aucune cavalière pour le moment.</p>'; return; }
+    const getEcurieName = id => { const e = state.ecuries.find(x => x.id === id); return e ? e.nom : '—'; };
+    panel.innerHTML = state.cavalieres.map(c => `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>${esc(c.prenom)} ${esc(c.nom)}</strong><br>Écurie : ${esc(getEcurieName(c.ecurie_id))}<br>${c.nom_cheval ? 'Cheval : ' + esc(c.nom_cheval) + '<br>' : ''}${c.telephone ? 'Tél : ' + esc(c.telephone) + '<br>' : ''}${c.email ? 'Email : ' + esc(c.email) + '<br>' : ''}<small>Statut : ${esc(c.statut || 'prospect')}</small></div>`).join('');
   }
 
   function renderConcours() {
     const panel = $('concours')?.querySelector('.panel');
     if (!panel) return;
-    if (!state.concours.length) {
-      panel.innerHTML = '<p>Aucun concours pour le moment.</p>';
-      return;
-    }
-    const getEcurieName = id => {
-      const e = state.ecuries.find(x => x.id === id);
-      return e ? e.nom : '—';
-    };
-    const html = state.concours.map(c => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)">
-        <strong>${esc(c.nom)}</strong><br>
-        ${c.lieu ? `Lieu : ${esc(c.lieu)}<br>` : ''}
-        ${c.date_debut ? `Du : ${esc(c.date_debut)}<br>` : ''}
-        ${c.date_fin ? `Au : ${esc(c.date_fin)}<br>` : ''}
-        ${c.distance_km ? `Distance : ${esc(c.distance_km)} km<br>` : ''}
-        <small>Écurie : ${esc(getEcurieName(c.ecurie_id))}</small>
-        ${c.notes ? `<br><small>${esc(c.notes)}</small>` : ''}
-      </div>
-    `).join('');
-    panel.innerHTML = html;
+    if (!state.concours.length) { panel.innerHTML = '<p>Aucun concours pour le moment.</p>'; return; }
+    const getEcurieName = id => { const e = state.ecuries.find(x => x.id === id); return e ? e.nom : '—'; };
+    panel.innerHTML = state.concours.map(c => `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>${esc(c.nom)}</strong><br>${c.lieu ? 'Lieu : ' + esc(c.lieu) + '<br>' : ''}${c.date_debut ? 'Du : ' + esc(c.date_debut) + '<br>' : ''}${c.date_fin ? 'Au : ' + esc(c.date_fin) + '<br>' : ''}${c.distance_km ? 'Distance : ' + esc(c.distance_km) + ' km<br>' : ''}<small>Écurie : ${esc(getEcurieName(c.ecurie_id))}</small>${c.notes ? '<br><small>' + esc(c.notes) + '</small>' : ''}</div>`).join('');
   }
 
   function renderPrestations() {
     const section = $('prestations');
     if (!section) return;
     let panel = section.querySelector('.panel');
-    if (!panel) {
-      panel = document.createElement('section');
-      panel.className = 'panel';
-      section.appendChild(panel);
-    }
-    if (!state.prestations.length) {
-      panel.innerHTML = '<p>Aucune prestation pour le moment.</p>';
-      return;
-    }
-    const html = state.prestations.map(p => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)">
-        <strong>${esc(p.libelle)}</strong><br>
-        Type : ${esc(p.type)}<br>
-        Quantité : ${p.quantite ?? '—'}<br>
-        Prix : ${euro(p.prix)}
-      </div>
-    `).join('');
-    panel.innerHTML = html;
+    if (!panel) { panel = document.createElement('section'); panel.className = 'panel'; section.appendChild(panel); }
+    if (!state.prestations.length) { panel.innerHTML = '<p>Aucune prestation pour le moment.</p>'; return; }
+    panel.innerHTML = state.prestations.map(p => `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>${esc(p.libelle)}</strong><br>Type : ${esc(p.type)}<br>Quantité : ${p.quantite ?? '—'}<br>Prix : ${euro(p.prix)}</div>`).join('');
   }
 
   function renderFactures() {
     const panel = $('factures')?.querySelector('.panel');
     if (!panel) return;
-    if (!state.factures.length) {
-      panel.innerHTML = '<p>Aucune facture pour le moment.</p>';
-      return;
-    }
-    const getCavaliereName = id => {
-      const c = state.cavalieres.find(x => x.id === id);
-      return c ? `${c.prenom} ${c.nom}` : '—';
-    };
-    const html = state.factures.map(f => {
+    if (!state.factures.length) { panel.innerHTML = '<p>Aucune facture pour le moment.</p>'; return; }
+    const getCavaliereName = id => { const c = state.cavalieres.find(x => x.id === id); return c ? c.prenom + ' ' + c.nom : '—'; };
+    panel.innerHTML = state.factures.map(f => {
       const statut = f.statut_paiement || f.statut || 'en_attente';
       const badgeClass = statut === 'payee' ? 'success' : statut === 'en_retard' ? 'danger' : 'warning';
-      return `
-        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)">
-          <strong>${esc(f.numero)}</strong> – ${esc(f.date_facture || f.date_creation || '—')}<br>
-          Cavalière : ${esc(getCavaliereName(f.cavaliere_id))}<br>
-          Montant : ${euro(f.montant_total)}<br>
-          <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--${badgeClass}-bg);color:var(--${badgeClass})">${esc(statut)}</span>
-        </div>
-      `;
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>${esc(f.numero)}</strong> – ${esc(f.date_facture || f.date_creation || '—')}<br>Cavalière : ${esc(getCavaliereName(f.cavaliere_id))}<br>Montant : ${euro(f.montant_total)}<br><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--${badgeClass}-bg);color:var(--${badgeClass})">${esc(statut)}</span></div>`;
     }).join('');
-    panel.innerHTML = html;
   }
 
   function renderReglages() {
     const section = $('reglages');
     if (!section) return;
     let panel = section.querySelector('.panel');
-    if (!panel) {
-      panel = document.createElement('section');
-      panel.className = 'panel';
-      section.appendChild(panel);
-    }
+    if (!panel) { panel = document.createElement('section'); panel.className = 'panel'; section.appendChild(panel); }
     const r = state.reglages;
-    if (!r) {
-      panel.innerHTML = '<p>Aucun réglage pour le moment.</p>';
-      return;
-    }
-    panel.innerHTML = `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg-card);box-shadow:var(--shadow)">
-        <strong>Entreprise</strong><br>
-        ${r.nom_entreprise ? esc(r.nom_entreprise) + '<br>' : ''}
-        ${r.adresse ? esc(r.adresse) + '<br>' : ''}
-        ${[r.code_postal_entreprise, r.ville_entreprise].filter(Boolean).length ? esc([r.code_postal_entreprise, r.ville_entreprise].filter(Boolean).join(' ')) + '<br>' : ''}
-        ${r.siret ? `SIRET : ${esc(r.siret)}<br>` : ''}
-        ${r.mention_tva ? `<small>${esc(r.mention_tva)}</small><br>` : ''}
-        <br>
-        <strong>Facturation</strong><br>
-        Préfixe : ${esc(r.prefixe_facture || '—')}<br>
-        Prochain numéro : ${r.prochain_numero_facture ?? '—'}<br>
-        Taux km : ${euro(r.taux_km || 0)} / km<br>
-        ${r.puissance_fiscale_cv ? `Puissance fiscale : ${r.puissance_fiscale_cv} CV<br>` : ''}
-      </div>
-    `;
+    if (!r) { panel.innerHTML = '<p>Aucun réglage pour le moment.</p>'; return; }
+    panel.innerHTML = `<div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg-card);box-shadow:var(--shadow)"><strong>Entreprise</strong><br>${r.nom_entreprise ? esc(r.nom_entreprise) + '<br>' : ''}${r.adresse ? esc(r.adresse) + '<br>' : ''}${[r.code_postal_entreprise, r.ville_entreprise].filter(Boolean).length ? esc([r.code_postal_entreprise, r.ville_entreprise].filter(Boolean).join(' ')) + '<br>' : ''}${r.siret ? 'SIRET : ' + esc(r.siret) + '<br>' : ''}${r.mention_tva ? '<small>' + esc(r.mention_tva) + '</small><br>' : ''}<br><strong>Facturation</strong><br>Préfixe : ${esc(r.prefixe_facture || '—')}<br>Prochain numéro : ${r.prochain_numero_facture ?? '—'}<br>Taux km : ${euro(r.taux_km || 0)} / km<br>${r.puissance_fiscale_cv ? 'Puissance fiscale : ' + r.puissance_fiscale_cv + ' CV<br>' : ''}</div>`;
   }
 
-  // Création de facture (simple)
   function renderFacturation() {
     const section = $('facturation');
     if (!section) return;
     let panel = section.querySelector('.panel');
-    if (!panel) {
-      panel = document.createElement('section');
-      panel.className = 'panel';
-      section.appendChild(panel);
-    }
-    if (!state.cavalieres.length || !state.prestations.length) {
-      panel.innerHTML = '<p>Ajoute d'abord des cavalières et des prestations pour créer une facture.</p>';
-      return;
-    }
-    const cavOptions = state.cavalieres.map(c => `<option value="${c.id}">${esc(c.prenom)} ${esc(c.nom)}</option>`).join('');
-    const prestOptions = state.prestations.map(p => `<option value="${p.id}" data-prix="${p.prix}">${esc(p.libelle)} – ${euro(p.prix)}</option>`).join('');
+    if (!panel) { panel = document.createElement('section'); panel.className = 'panel'; section.appendChild(panel); }
+    if (!state.cavalieres.length || !state.prestations.length) { panel.innerHTML = '<p>Ajoute d\'abord des cavalières et des prestations pour créer une facture.</p>'; return; }
+    const cavOptions = state.cavalieres.map(c => '<option value="' + c.id + '">' + esc(c.prenom) + ' ' + esc(c.nom) + '</option>').join('');
+    const prestOptions = state.prestations.map(p => '<option value="' + p.id + '" data-prix="' + p.prix + '">' + esc(p.libelle) + ' – ' + euro(p.prix) + '</option>').join('');
 
-    panel.innerHTML = `
-      <form id="form-facture" style="display:flex;flex-direction:column;gap:12px;max-width:500px">
-        <label>Cavalière
-          <select id="ff-cavaliere" required>${cavOptions}</select>
-        </label>
-        <label>Prestation
-          <select id="ff-prestation" required>${prestOptions}</select>
-        </label>
-        <label>Quantité
-          <input type="number" id="ff-quantite" value="1" min="1" required>
-        </label>
-        <button type="submit" class="btn-primary"><i class="bx bx-plus"></i> Créer la facture</button>
-      </form>
-      <div id="ff-result" style="margin-top:12px"></div>
-    `;
+    panel.innerHTML = '<form id="form-facture" style="display:flex;flex-direction:column;gap:12px;max-width:500px"><label>Cavalière<select id="ff-cavaliere" required>' + cavOptions + '</select></label><label>Prestation<select id="ff-prestation" required>' + prestOptions + '</select></label><label>Quantité<input type="number" id="ff-quantite" value="1" min="1" required></label><button type="submit" class="btn-primary"><i class="bx bx-plus"></i> Créer la facture</button></form><div id="ff-result" style="margin-top:12px"></div>';
 
     $('form-facture')?.addEventListener('submit', async event => {
       event.preventDefault();
@@ -317,54 +192,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const quantite = Number($('ff-quantite').value);
 
       const prestation = state.prestations.find(p => p.id === prestation_id);
-      if (!prestation) {
-        resultBox.innerHTML = '<p style="color:var(--danger)">Prestation introuvable.</p>';
-        return;
-      }
+      if (!prestation) { resultBox.innerHTML = '<p style="color:var(--danger)">Prestation introuvable.</p>'; return; }
 
       const montant = Number(prestation.prix) * quantite;
       const r = state.reglages || {};
       const prefixe = r.prefixe_facture || 'FACT-';
-      const numero = `${prefixe}${String(r.prochain_numero_facture || 1).padStart(4, '0')}`;
+      const numero = prefixe + String(r.prochain_numero_facture || 1).padStart(4, '0');
 
       try {
-        // Insert facture
-        const { data: facture, error: errFact } = await state.db.from('factures').insert({
-          numero,
-          cavaliere_id,
-          montant_total: montant,
-          statut_paiement: 'en_attente',
-          mention_tva: r.mention_tva || 'TVA non applicable, art. 293 B du CGI'
-        }).select().single();
-
+        const { data: facture, error: errFact } = await state.db.from('factures').insert({ numero, cavaliere_id, montant_total: montant, statut_paiement: 'en_attente', mention_tva: r.mention_tva || 'TVA non applicable, art. 293 B du CGI' }).select().single();
         if (errFact) throw errFact;
 
-        // Insert ligne de facture
-        const { error: errLigne } = await state.db.from('lignes_facture').insert({
-          facture_id: facture.id,
-          prestation_id,
-          libelle: prestation.libelle,
-          quantite,
-          prix_unitaire: prestation.prix,
-          sous_total: montant
-        });
-
+        const { error: errLigne } = await state.db.from('lignes_facture').insert({ facture_id: facture.id, prestation_id, libelle: prestation.libelle, quantite, prix_unitaire: prestation.prix, sous_total: montant });
         if (errLigne) throw errLigne;
 
-        // Mettre à jour prochain_numero_facture
         if (r.id) {
-          await state.db.from('reglages').update({
-            prochain_numero_facture: (r.prochain_numero_facture || 1) + 1
-          }).eq('id', r.id);
+          await state.db.from('reglages').update({ prochain_numero_facture: (r.prochain_numero_facture || 1) + 1 }).eq('id', r.id);
         }
 
-        resultBox.innerHTML = `<p style="color:var(--success)">Facture <strong>${esc(numero)}</strong> créée avec succès (montant : ${euro(montant)}).</p>`;
-        // Recharger les factures
+        resultBox.innerHTML = '<p style="color:var(--success)">Facture <strong>' + esc(numero) + '</strong> créée avec succès (montant : ' + euro(montant) + ').</p>';
         state.factures = await selectAll('factures', 'date_creation');
         renderFactures();
       } catch (error) {
         console.error(error);
-        resultBox.innerHTML = `<p style="color:var(--danger)">Erreur : ${esc(errorMessage(error))}</p>`;
+        resultBox.innerHTML = '<p style="color:var(--danger)">Erreur : ' + esc(errorMessage(error)) + '</p>';
       }
     });
   }
@@ -382,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderReglages();
     } catch (error) {
       console.error(error);
-      setStatus('error', `Connexion impossible : ${error.message}`);
+      setStatus('error', 'Connexion impossible : ' + error.message);
       text('sync-summary', 'Les données ne sont pas accessibles. Vérifie les politiques RLS et les noms des tables dans Supabase.');
       ['dash-total-ecuries','dash-total-cavalieres','dash-en-attente'].forEach(id => text(id, '—'));
       text('dash-ca-mois', '—');
