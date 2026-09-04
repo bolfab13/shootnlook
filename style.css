@@ -1443,6 +1443,14 @@ main {
 .payment-settings {
     grid-template-columns: 1fr;
 }
+.widget-card {
+  min-height: 380px;
+}
+
+#chart-ca {
+  width: 100% !important;
+  height: 280px !important;
+}
 [data-layout=horizontal] #sidebar {
     position: fixed;
     height: 100%;
