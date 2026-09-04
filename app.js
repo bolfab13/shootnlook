@@ -42,6 +42,198 @@ function unpaidHTML(f){return`<div class="bell-item unpaid-item" data-invoice-id
 function refreshBell(){bellItems=reminderItems();$('bell-badge').textContent=bellItems.length;$('bell-badge').classList.toggle('hidden',!bellItems.length);$('bell-count-pill').textContent=`${bellItems.length} notification${bellItems.length===1?'':'s'}`;const n=bellItems.slice(0,settings.rappel_affichage_limite||3);$('bell-list').innerHTML=n.map(x=>`<div class="bell-item" data-shooting-id="${x.id}"><span class="bell-icon-dot ${x.s.type_shooting}"><i class="bx ${x.s.type_shooting==='concours'?'bx-trophy':'bx-camera-movie'}"></i></span><div class="bell-item-body"><span class="bell-when">${x.label}</span><strong>${esc(x.s.nom)}</strong><span class="bell-type">${x.s.type_shooting==='concours'?'Concours':'Shooting personnalise'} - ${x.s.date_debut}</span></div></div>`).join('')||'<p class="aide" style="padding:16px">Aucun rappel.</p>';document.querySelectorAll('[data-shooting-id]').forEach(x=>x.onclick=()=>{openTab('shootings');setTimeout(()=>{const r=document.querySelector(`[data-shooting-id="${x.dataset.shootingId}"]`);r?.classList.add('row-highlight');setTimeout(()=>r?.classList.remove('row-highlight'),3000)},100)});$('bell-footer').style.display=bellItems.length>(settings.rappel_affichage_limite||3)?'block':'none';if(bellItems.length>(settings.rappel_affichage_limite||3))$('bell-voir-plus').innerHTML=`Voir plus (${bellItems.length-(settings.rappel_affichage_limite||3)})`}
 async function refreshUnpaid(){const r=await db.from('factures').select('id,numero,montant_total,statut_paiement,cavalieres(prenom,nom)').in('statut_paiement',['en_attente','en_retard']).order('date_facture');unpaidItems=r.data||[];const n=unpaidItems.length;$('unpaid-badge').textContent=n;$('unpaid-badge').classList.toggle('hidden',!n);$('unpaid-count-pill').textContent=n;$('unpaid-list').innerHTML=n?unpaidItems.slice(0,10).map(unpaidHTML).join(''):'<p class="aide" style="padding:16px">Aucune facture non payee.</p>';document.querySelectorAll('.unpaid-item').forEach(x=>x.onclick=()=>{openTab('factures');setTimeout(()=>{const r=document.querySelector(`[data-invoice-id="${x.dataset.invoiceId}"]`);r?.classList.add('row-highlight');r?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>r?.classList.remove('row-highlight'),3000)},100)})}
 $('bell-voir-plus').onclick=()=>{$('notifs-full-list').innerHTML=bellItems.map(x=>`<div class="bell-item" data-shooting-id="${x.id}"><strong>${esc(x.s.nom)}</strong><span>${x.label} - ${x.s.date_debut}</span></div>`).join('');$('bell-menu').classList.remove('open');$('modal-notifs').classList.add('visible')};$('save-custom-theme').onclick=()=>{const c={'--accent':$('custom-accent').value,'--sidebar-bg':$('custom-sidebar').value,'--bg-body':$('custom-background').value};localStorage.setItem('customColors',JSON.stringify(c));setColorTheme('custom');alert('Theme personnalise enregistre')};
-async function loadDashboard(){const [a,b,c,d]=await Promise.all([db.from('cavalieres').select('id'),db.from('ecuries').select('id'),db.from('factures').select('*, cavalieres(nom,prenom)'),db.from('concours').select('*').order('date_debut')]);$('stat-cavalieres').textContent=a.data.length;$('stat-ecuries').textContent=b.data.length;const fs=c.data||[],n=new Date();$('stat-ca-mois').textContent=euro(fs.filter(f=>{const x=new Date(f.date_facture);return x.getMonth()===n.getMonth()&&x.getFullYear()===n.getFullYear()&&f.statut_paiement==='payee'}).reduce((s,f)=>s+Number(f.montant_total||0),0));$('stat-en-attente').textContent=fs.filter(f=>['en_attente','en_retard'].includes(f.statut_paiement)).length;const moisLabels=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];const caData=[];for(let i=5;i>=0;i--){const m=new Date(n.getFullYear(),n.getMonth()-i,1);const v=fs.filter(f=>{const x=new Date(f.date_facture);return x.getMonth()===m.getMonth()&&x.getFullYear()===m.getFullYear()&&f.statut_paiement==='payee'}).reduce((s,f)=>s+Number(f.montant_total||0),0);caData.push(Number(v.toFixed(2)))}if(chart)chart.destroy();if(window.Chart)chart=new Chart($('chart-ca'),{type:'bar',data:{labels:caData.map((_,i)=>moisLabels[(n.getMonth()-5+i+12)%12]),datasets:[{label:"CA encaissé",data:caData,backgroundColor:getComputedStyle(root).getPropertyValue('--accent').trim(),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`CA encaissé : ${euro(ctx.raw)}`}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>euro(v)}}}}});$('liste-prochains-shootings').innerHTML=(d.data||[]).filter(x=>x.date_debut>=today()).slice(0,5).map(x=>`<li><span>${esc(x.nom)}</span><span class="badge-date">${x.date_debut}</span></li>`).join('');const rf=[...fs].sort((a,b)=>new Date(b.date_facture)-new Date(a.date_facture)).slice(0,5);const tb=$('liste-dernieres-factures');if(tb)tb.innerHTML=rf.map(f=>`<tr><td>${esc(f.numero||'-')}</td><td>${esc(f.cavalieres?.prenom||'-')} ${esc(f.cavalieres?.nom||'')}</td><td>${esc(f.date_facture||'-')}</td><td>${euro(f.montant_total||0)}</td><td><span class="badge-statut badge-${f.statut_paiement||'en_attente'}">${esc(f.statut_paiement||'en_attente')}</span></td></tr>`).join('')||'<tr><td colspan="5">Aucune facture</td></tr>'}
+async function loadDashboard() {
+  try {
+    const [ridersResult, stablesResult, invoicesResult, shootingsResult] =
+      await Promise.all([
+        db.from('cavalieres').select('id'),
+        db.from('ecuries').select('id'),
+        db.from('factures').select('*, cavalieres(nom,prenom)'),
+        db.from('concours').select('*').order('date_debut')
+      ]);
+
+    const riders = ridersResult.data || [];
+    const stables = stablesResult.data || [];
+    const invoices = invoicesResult.data || [];
+    const shootingsData = shootingsResult.data || [];
+
+    $('stat-cavalieres').textContent = riders.length;
+    $('stat-ecuries').textContent = stables.length;
+
+    const now = new Date();
+
+    const paidInvoices = invoices.filter(
+      invoice => invoice.statut_paiement === 'payee'
+    );
+
+    const currentMonthRevenue = paidInvoices
+      .filter(invoice => {
+        const date = new Date(`${invoice.date_facture}T12:00:00`);
+        return (
+          date.getMonth() === now.getMonth() &&
+          date.getFullYear() === now.getFullYear()
+        );
+      })
+      .reduce(
+        (total, invoice) => total + Number(invoice.montant_total || 0),
+        0
+      );
+
+    $('stat-ca-mois').textContent = euro(currentMonthRevenue);
+
+    const unpaidCount = invoices.filter(invoice =>
+      ['en_attente', 'en_retard'].includes(invoice.statut_paiement)
+    ).length;
+
+    $('stat-en-attente').textContent = unpaidCount;
+
+    const monthNames = [
+      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+      'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+    ];
+
+    const labels = [];
+    const monthlyRevenue = [];
+
+    for (let offset = 5; offset >= 0; offset--) {
+      const monthDate = new Date(
+        now.getFullYear(),
+        now.getMonth() - offset,
+        1
+      );
+
+      labels.push(monthNames[monthDate.getMonth()]);
+
+      const amount = paidInvoices
+        .filter(invoice => {
+          const date = new Date(`${invoice.date_facture}T12:00:00`);
+          return (
+            date.getMonth() === monthDate.getMonth() &&
+            date.getFullYear() === monthDate.getFullYear()
+          );
+        })
+        .reduce(
+          (total, invoice) => total + Number(invoice.montant_total || 0),
+          0
+        );
+
+      monthlyRevenue.push(amount);
+    }
+
+    if (chart) {
+      chart.destroy();
+      chart = null;
+    }
+
+    const chartCanvas = $('chart-ca');
+
+    if (window.Chart && chartCanvas) {
+      chart = new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'CA encaissé',
+              data: monthlyRevenue,
+              backgroundColor:
+                getComputedStyle(root)
+                  .getPropertyValue('--accent')
+                  .trim() || '#556ee6',
+              borderRadius: 5,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: context =>
+                  `CA encaissé : ${euro(context.raw)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: value => euro(value)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const upcomingShootings = shootingsData
+      .filter(shooting => shooting.date_debut >= today())
+      .slice(0, 5);
+
+    $('liste-prochains-shootings').innerHTML = upcomingShootings
+      .map(
+        shooting => `
+          <li>
+            <span>${esc(shooting.nom)}</span>
+            <span class="badge-date">${shooting.date_debut}</span>
+          </li>
+        `
+      )
+      .join('');
+
+    const latestInvoices = [...invoices]
+      .sort(
+        (a, b) =>
+          new Date(`${b.date_facture}T12:00:00`) -
+          new Date(`${a.date_facture}T12:00:00`)
+      )
+      .slice(0, 5);
+
+    const latestInvoicesTable = $('liste-dernieres-factures');
+
+    if (latestInvoicesTable) {
+      latestInvoicesTable.innerHTML = latestInvoices.length
+        ? latestInvoices
+            .map(
+              invoice => `
+                <tr>
+                  <td>${esc(invoice.numero || '-')}</td>
+                  <td>
+                    ${esc(invoice.cavalieres?.prenom || '-')}
+                    ${esc(invoice.cavalieres?.nom || '')}
+                  </td>
+                  <td>${esc(invoice.date_facture || '-')}</td>
+                  <td>${euro(invoice.montant_total || 0)}</td>
+                  <td>
+                    <span class="badge-statut badge-${esc(
+                      invoice.statut_paiement || 'en_attente'
+                    )}">
+                      ${esc(invoice.statut_paiement || 'en_attente')}
+                    </span>
+                  </td>
+                </tr>
+              `
+            )
+            .join('')
+        : '<tr><td colspan="5">Aucune facture</td></tr>';
+    }
+  } catch (error) {
+    console.error('Erreur de chargement du tableau de bord :', error);
+  }
+}
 async function init(){setTheme(localStorage.getItem('theme')||'light');setLayout(localStorage.getItem('layout')||'vertical');setSidebar(localStorage.getItem('sidebar')||'normal');setColorTheme(localStorage.getItem('colorTheme')||'classic');profile();initIconFields();applyIcons();$('fa-date').value=today();await loadSettings();await loadStables();await loadRiders();await loadShootings();await loadServices();await loadInvoices();bindLines();calculate();await loadDashboard();await refreshUnpaid();renderCalendar()};init();
 });
