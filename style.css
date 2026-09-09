@@ -1485,3 +1485,161 @@ main {
     top: 0;
 }
 }
+/* =========================================================
+   Thème sombre : contraste renforcé
+   À placer tout à la fin de style.css
+   ========================================================= */
+
+:root[data-theme="dark"] {
+  --bg-body: #121821;
+  --card-bg: #1c2633;
+  --card-bg-hover: #243244;
+  --sidebar-bg: #101720;
+  --topbar-bg: #18212d;
+
+  --text: #f1f5f9;
+  --text-muted: #aebdce;
+  --text-light: #7f91a6;
+
+  --border: #334155;
+  --border-light: #2a3849;
+  --input-bg: #121b26;
+
+  --accent: #8caf7f;
+  --accent-hover: #a5c695;
+
+  --success: #55b985;
+  --warning: #e4b45e;
+  --danger: #ed6a6a;
+}
+
+/* Fond et en-tête */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] main,
+:root[data-theme="dark"] .content-wrapper {
+  background: var(--bg-body);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] #topbar {
+  background: var(--topbar-bg);
+  border-color: var(--border);
+}
+
+/* Cartes, widgets et zones de contenu */
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .widget-card,
+:root[data-theme="dark"] .bloc-recherche,
+:root[data-theme="dark"] .bloc-table,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .calendar-main,
+:root[data-theme="dark"] .calendar-sidebar,
+:root[data-theme="dark"] .modal-contenu,
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .facture-total-card {
+  background: var(--card-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Titres, libellés et aide */
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td,
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] .stat-value,
+:root[data-theme="dark"] .widget-head,
+:root[data-theme="dark"] .page-heading {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] .aide,
+:root[data-theme="dark"] .stat-label,
+:root[data-theme="dark"] .widget-period,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] .facture-total-card span {
+  color: var(--text-muted);
+}
+
+/* Formulaires et recherche */
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .topbar-search {
+  background: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: var(--text-light);
+  opacity: 1;
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus {
+  border-color: var(--accent);
+  outline-color: var(--accent);
+}
+
+/* Tableaux, séparateurs et lignes */
+:root[data-theme="dark"] table,
+:root[data-theme="dark"] thead,
+:root[data-theme="dark"] tbody,
+:root[data-theme="dark"] tr,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td {
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] thead,
+:root[data-theme="dark"] th {
+  background: #202c3b;
+}
+
+:root[data-theme="dark"] tbody tr:hover {
+  background: var(--card-bg-hover);
+}
+
+/* Calendrier et listes */
+:root[data-theme="dark"] .fc-day,
+:root[data-theme="dark"] .fc-grid-head > div,
+:root[data-theme="dark"] .liste-widget li {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .fc-day.out {
+  background: #151e29;
+}
+
+:root[data-theme="dark"] .fc-day.today {
+  background: #263a31;
+}
+
+/* Boutons secondaires et icônes */
+:root[data-theme="dark"] .btn-muted,
+:root[data-theme="dark"] .topbar-icon-btn,
+:root[data-theme="dark"] .user-button,
+:root[data-theme="dark"] .calendar-toolbar button {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .btn-muted:hover,
+:root[data-theme="dark"] .topbar-icon-btn:hover,
+:root[data-theme="dark"] .user-button:hover,
+:root[data-theme="dark"] .calendar-toolbar button:hover {
+  background: var(--card-bg-hover);
+}
+
+/* Ombre et voile des modales */
+:root[data-theme="dark"] .modal {
+  background: rgba(0, 0, 0, 0.72);
+}
