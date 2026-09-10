@@ -1504,5 +1504,22 @@ main {
   width: 100% !important;
   height: 270px !important;
   max-height: 270px !important;
+}
+/* Cas où #chart-ca est directement dans .widget-card */
+#dashboard .widget-card:has(> #chart-ca) {
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  min-height: 360px;
+  max-height: 360px;
+  overflow: hidden;
+}
+
+#dashboard .widget-card:has(> #chart-ca) > #chart-ca {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 270px !important;
+  max-height: 270px !important;
+  width: 100% !important;
 }    
 }
