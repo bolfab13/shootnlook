@@ -57,6 +57,8 @@
     --success: #63b99b;
     --success-bg: #e9f8f0;
     --warning: #d99748;
+    --text-main: #bd4f85;
+    --text-secondary: #d96a9d;
 }
 [data-color-theme=campagne] {
     --bg-body: #f6f3ea;
@@ -72,6 +74,8 @@
     --success: #83a76f;
     --success-bg: #edf4e8;
     --warning: #bf944e;
+    --text-main: #354337;
+    --text-secondary: #6f8f68;
 }
 [data-color-theme=vegetal]{
   --bg-body:#f4f7f0;
