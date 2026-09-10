@@ -1476,4 +1476,33 @@ main {
 [data-layout=horizontal] #topbar {
     top: 0;
 }
+/* =========================================================
+   Correctif : empêche Chart.js d'agrandir le dashboard
+   ========================================================= */
+
+/* Le widget du graphique ne doit pas grandir selon le canvas */
+#dashboard .widget-card:has(#chart-ca) {
+  height: 360px;
+  min-height: 360px;
+  max-height: 360px;
+  overflow: hidden;
+}
+
+/* Zone réservée au graphique : hauteur strictement fixe */
+#dashboard .widget-card:has(#chart-ca) .chart-container {
+  position: relative;
+  height: 270px;
+  min-height: 270px;
+  max-height: 270px;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Le canvas ne peut jamais étendre son parent */
+#dashboard #chart-ca {
+  display: block !important;
+  width: 100% !important;
+  height: 270px !important;
+  max-height: 270px !important;
+}    
 }
