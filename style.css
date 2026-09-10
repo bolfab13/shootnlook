@@ -1005,6 +1005,41 @@ td button {
     width: 100%;
 }
 
+.theme-color-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.theme-color-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--table-header);
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+.theme-color-field input[type="color"] {
+  width: 100%;
+  height: 36px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.theme-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
 .theme-settings {
     display: flex;
     flex-wrap: wrap;
