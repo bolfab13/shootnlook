@@ -147,7 +147,8 @@ async function loadDashboard() {
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+		  maintainAspectRatio: true,
+		  aspectRatio: 3.2,
           animation: {
             duration: 800,
             easing: 'easeOutQuart'
