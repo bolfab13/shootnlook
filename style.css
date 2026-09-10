@@ -1400,185 +1400,80 @@ td button {
     height: 100%;
     transform: translateX(-100%);
 }
-/* =========================================================
-   THEMES SOMBRES PAR PALETTE
-   Ce bloc doit être placé tout à la fin de style.css.
-   ========================================================= */
-
-/*
-  Variables communes du dark mode.
-  Elles modifient uniquement les surfaces et les textes.
-  La couleur principale (--accent) est ensuite définie
-  spécifiquement pour chaque palette.
-*/
-:root[data-theme="dark"] {
-  --bg-body: #141923;
-  --bg-card: #1d2531;
-  --bg-input: #121923;
-  --text-main: #edf2f7;
-  --text-secondary: #a8b3c2;
-  --border: #334155;
-  --table-header: #263140;
-  --table-hover: #2b3747;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
-  --modal-bg: rgba(0, 0, 0, 0.74);
+.layout.mobile-menu #sidebar {
+    transform: translateX(0);
 }
-
-/* Classique : bleu nuit / bleu ardoise */
-:root[data-theme="dark"][data-color-theme="classic"] {
-  --sidebar-bg: #111827;
-  --sidebar-text: #aebee5;
-  --sidebar-active: #435fbd;
-  --accent: #6d8ce8;
-  --accent-hover: #8ca6f2;
-
-  --success: #4ebd91;
-  --success-bg: #183c34;
-  --warning: #e0ac50;
-  --warning-bg: #46371d;
-  --danger: #ee7373;
-  --danger-bg: #4a252a;
-  --info: #63a8f0;
-  --info-bg: #1c3550;
+.topbar-search {
+    display: none;
 }
-
-/* Girly : prune / rose poudré assombri */
-:root[data-theme="dark"][data-color-theme="girly"] {
-  --bg-body: #1d151d;
-  --bg-card: #2a1e2b;
-  --bg-input: #211822;
-  --text-main: #f6edf3;
-  --text-secondary: #c8aebd;
-  --border: #50384f;
-  --table-header: #342537;
-  --table-hover: #402d41;
-
-  --sidebar-bg: #241824;
-  --sidebar-text: #dfb7cf;
-  --sidebar-active: #9b4e78;
-  --accent: #df83b3;
-  --accent-hover: #eda0c8;
-
-  --success: #65bd9e;
-  --success-bg: #1d4138;
-  --warning: #deaa5b;
-  --warning-bg: #4b3720;
-  --danger: #ed7e94;
-  --danger-bg: #4b2934;
-  --info: #b68aea;
-  --info-bg: #36284a;
+main {
+    padding: 14px;
 }
-
-/* Campagne : vert forêt / kaki assombri */
-:root[data-theme="dark"][data-color-theme="campagne"] {
-  --bg-body: #191c17;
-  --bg-card: #242a21;
-  --bg-input: #1b2119;
-  --text-main: #f0f2e9;
-  --text-secondary: #b5c0a7;
-  --border: #465340;
-  --table-header: #2e362a;
-  --table-hover: #384133;
-
-  --sidebar-bg: #1b271d;
-  --sidebar-text: #c4d2b8;
-  --sidebar-active: #566e50;
-  --accent: #9ab875;
-  --accent-hover: #b1cb90;
-
-  --success: #8fba79;
-  --success-bg: #2b4128;
-  --warning: #d2ac62;
-  --warning-bg: #4a3b22;
-  --danger: #de7b68;
-  --danger-bg: #4a2a25;
-  --info: #77a9c0;
-  --info-bg: #243d45;
+.stats-grid {
+    grid-template-columns: 1fr;
 }
-
-/*
-  Vegetal est conservé afin que le choix existant reste fonctionnel.
-  Si tu ne veux plus cette palette, tu pourras retirer son option HTML
-  plus tard, mais ce bloc évite toute régression.
-*/
-:root[data-theme="dark"][data-color-theme="vegetal"] {
-  --bg-body: #151c13;
-  --bg-card: #202a1d;
-  --bg-input: #182016;
-  --text-main: #eef5e9;
-  --text-secondary: #b5c7aa;
-  --border: #42533a;
-  --table-header: #293524;
-  --table-hover: #34432d;
-
-  --sidebar-bg: #172613;
-  --sidebar-text: #c3d6b5;
-  --sidebar-active: #4f7737;
-  --accent: #88b75d;
-  --accent-hover: #a3ca7b;
-
-  --success: #7eb45c;
-  --success-bg: #294321;
-  --warning: #d5a94c;
-  --warning-bg: #4a3c1e;
-  --danger: #d87967;
-  --danger-bg: #492923;
-  --info: #65a681;
-  --info-bg: #1f4230;
+.user-name {
+    display: none;
 }
-
-/*
-  Personnalisé :
-  les couleurs choisies dans les réglages restent prioritaires pour
-  --accent, --sidebar-bg et --bg-body. Ces règles traitent les autres
-  surfaces afin d'obtenir un fond sombre cohérent.
-*/
-:root[data-theme="dark"][data-color-theme="custom"] {
-  --bg-card: #202733;
-  --bg-input: #171e29;
-  --text-main: #edf2f7;
-  --text-secondary: #aeb9c8;
-  --border: #344154;
-  --table-header: #293445;
-  --table-hover: #334155;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --modal-bg: rgba(0, 0, 0, 0.76);
-
-  --success: #55b98a;
-  --success-bg: #1c3d34;
-  --warning: #e2b35c;
-  --warning-bg: #4a3a20;
-  --danger: #ed7777;
-  --danger-bg: #4b272c;
-  --info: #68a9ee;
-  --info-bg: #1d3851;
+.menu-icons-settings {
+    grid-template-columns: 1fr;
 }
-
-/* Le tooltip calendrier utilisait une couleur écrite en dur */
-:root[data-theme="dark"] .fc-event-tooltip {
-  background: var(--sidebar-bg);
+#topbar {
+    padding: 0 14px;
 }
-
-/* Évite que la carte ou le canvas du graphique s'agrandisse indéfiniment */
-#dashboard .widget-card:has(#chart-ca) {
-  display: flex;
-  flex-direction: column;
-  height: 340px;
-  min-height: 340px;
-  max-height: 340px;
-  overflow: hidden;
+.bell-dropdown, .unpaid-dropdown {
+    min-width: 280px;
+    right: -40px;
 }
-
-/*
-  #chart-ca est actuellement placé directement dans .widget-card.
-  flex: 1 permet de remplir la zone restante sous le titre sans créer
-  une boucle de redimensionnement avec Chart.js.
-*/
-#dashboard .widget-card:has(> #chart-ca) > #chart-ca {
-  display: block !important;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100% !important;
-  height: auto !important;
-  max-height: 280px;
+.calendar-main {
+    padding: 12px;
+    overflow: auto;
+}
+.calendar-toolbar h3 {
+    order: -1;
+    width: 100%;
+    text-align: left;
+}
+.fc-day {
+    min-height: 82px;
+}
+.fc-grid-head, .fc-grid {
+    min-width: 700px;
+}
+.payment-settings {
+    grid-template-columns: 1fr;
+}
+[data-layout=horizontal] #sidebar {
+    position: fixed;
+    height: 100%;
+    width: 250px;
+    flex-direction: column;
+    align-items: stretch;
+    transform: translateX(-100%);
+}
+[data-layout=horizontal] .layout.mobile-menu #sidebar {
+    transform: translateX(0);
+}
+[data-layout=horizontal] .sidebar-logo {
+    height: 70px;
+}
+[data-layout=horizontal] #tabs {
+    flex-direction: column;
+    height: auto;
+    align-items: stretch;
+}
+[data-layout=horizontal] #tabs button {
+    height: auto;
+    width: 100%;
+    padding: 11px 22px;
+    border-bottom: 0;
+    border-left: 3px solid transparent;
+}
+[data-layout=horizontal] #tabs button.active {
+    border-bottom: 0;
+    border-left-color: #fff;
+}
+[data-layout=horizontal] #topbar {
+    top: 0;
+}
 }
