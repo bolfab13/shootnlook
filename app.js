@@ -4,7 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const root = document.documentElement;
   const layout = document.querySelector('.layout');
   const euro = n => `${Number(n || 0).toFixed(2)} EUR`;
-  const dateNow = () => new Date().toISOString().slice(0, 10);
+  const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const dateNow = () => toLocalISO(new Date());
   const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
@@ -229,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboard();
     }
   }
-  
+
   function renderThemeColorFields() {
     const container = $('theme-color-fields');
     if (!container) return;
@@ -739,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showCustom = $('filter-personnalise')?.checked !== false;
     $('calendar-grid').innerHTML = cells.map(date => {
       if (!date) return '<div class="fc-day out"></div>';
-      const iso = date.toISOString().slice(0, 10);
+      const iso = toLocalISO(date);
       const events = shootings.filter(s => iso >= s.date_debut && iso <= (s.date_fin || s.date_debut) && (s.type_shooting === 'concours' ? showConcours : showCustom));
       return `<div class="fc-day ${iso === dateNow() ? 'today' : ''}" data-date="${iso}"><span class="fc-day-number">${date.getDate()}</span>${events.map(e => { const place = e.ecuries?.nom || e.lieu || 'Lieu inconnu'; const rider = e.cavalieres ? `${e.cavalieres.prenom} ${e.cavalieres.nom}` : '-'; const detail = e.type_shooting === 'concours' ? `<b>${safe(e.nom)}</b><br><small>Lieu : ${safe(place)}</small>` : `<b>${safe(e.nom)}</b><br><small>Lieu : ${safe(place)}</small><br><small>Cavalier(e) : ${safe(rider)}</small>`; return `<span class="fc-event ${safe(e.type_shooting)}" data-event-id="${e.id}">${safe(e.nom)}<span class="fc-event-tooltip">${detail}</span></span>`; }).join('')}</div>`;
     }).join('');
