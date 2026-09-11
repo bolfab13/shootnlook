@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return { ...base, ...(overrides[palette]?.[mode] || {}) };
   }
 
-  function applyPaletteColors(themeName) {
+  /*function applyPaletteColors(themeName) {
     const colors = getPaletteColors(themeName);
     root.removeAttribute('style');
     Object.entries(colors).forEach(([variable, value]) => root.style.setProperty(variable, value));
@@ -229,7 +229,25 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDashboard();
     }
   }
+*/
+function applyPaletteColors(themeName) {
+  const activeTheme = themeName || root.dataset.colorTheme || 'classic';
+  const colors = getPaletteColors(activeTheme);
 
+  root.removeAttribute('style');
+
+  if (activeTheme !== 'classic') {
+    Object.entries(colors).forEach(([variable, value]) => {
+      root.style.setProperty(variable, value);
+    });
+  }
+
+  if (chart) {
+    chart.destroy();
+    chart = null;
+    loadDashboard();
+  }
+}  
   function renderThemeColorFields() {
     const container = $('theme-color-fields');
     if (!container) return;
