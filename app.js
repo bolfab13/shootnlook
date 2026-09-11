@@ -4,26 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const root = document.documentElement;
   const layout = document.querySelector('.layout');
   const euro = n => `${Number(n || 0).toFixed(2)} EUR`;
-  const today = () => new Date().toISOString().slice(0, 10);
-  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({
+  const dateNow = () => new Date().toISOString().slice(0, 10);
+  const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
-
-  let settings = {
-    id: null,
-    rappels_jours: [30, 14, 7, 2, 1],
-    rappel_affichage_limite: 3,
-    types_paiement: ['espece', 'cheque', 'virement', 'sans_contact'],
-    prefixe_facture: 'FACT-',
-    prochain_numero_facture: 1,
-    taux_km: .606,
-    mention_tva: 'TVA non applicable, art. 293 B du CGI'
-  };
-
-  let ecuries = [], cavaliers = [], shootings = [], chart = null, map = null;
-  let currentEcurie = null, currentCavaliere = null, currentShooting = null;
-  let calCursor = new Date();
-  let bellItems = [], unpaidItems = [];
 
   const titles = {
     dashboard: 'Tableau de bord',
@@ -37,7 +21,44 @@ document.addEventListener('DOMContentLoaded', () => {
     reglages: 'Reglages'
   };
 
-  const defaults = {
+  let settings = {
+    id: null,
+    nom_entreprise: '',
+    adresse: '',
+    code_postal_entreprise: '',
+    ville_entreprise: '',
+    siret: '',
+    logo_url: '',
+    domicile_adresse: '',
+    domicile_latitude: null,
+    domicile_longitude: null,
+    puissance_fiscale_cv: 4,
+    taux_km: .606,
+    mention_tva: 'TVA non applicable, art. 293 B du CGI',
+    prefixe_facture: 'FACT-2026-',
+    prochain_numero_facture: 1,
+    vehicule_marque: '',
+    vehicule_modele: '',
+    vehicule_annee: null,
+    vehicule_energie: 'essence',
+    rappels_jours: [30, 14, 7, 2, 1],
+    rappel_affichage_limite: 3,
+    types_paiement: ['espece', 'cheque', 'virement', 'sans_contact']
+  };
+
+  let chart = null;
+  let map = null;
+  let currentEcurie = null;
+  let currentCavaliere = null;
+  let currentShooting = null;
+  let ecuries = [];
+  let cavaliers = [];
+  let shootings = [];
+  let calCursor = new Date();
+  let bellItemsCache = [];
+  let unpaidItems = [];
+
+  const defaultIcons = {
     dashboard: 'bx bx-home-circle',
     calendrier: 'bx bx-calendar',
     ecuries: 'bx bx-buildings',
@@ -49,176 +70,140 @@ document.addEventListener('DOMContentLoaded', () => {
     reglages: 'bx bx-cog'
   };
 
-  const icons = () => {
-    try { return JSON.parse(localStorage.getItem('boxicons_menu')) || {}; }
-    catch { return {}; }
-  };
-
-  function applyIcons() {
-    const x = icons();
-    document.querySelectorAll('#tabs button[data-tab]').forEach(b => {
-      const i = b.querySelector('.icon');
-      if (i) i.className = `icon ${x[b.dataset.tab] || defaults[b.dataset.tab]}`;
-    });
-    document.querySelectorAll('[data-preview-icon]').forEach(i => {
-      i.className = x[i.dataset.previewIcon] || defaults[i.dataset.previewIcon];
-    });
-  }
-
-  function initIconFields() {
-    const x = icons();
-    document.querySelectorAll('[data-menu-icon]').forEach(i => {
-      const n = i.dataset.menuIcon;
-      i.value = x[n] || defaults[n];
-      i.oninput = () => {
-        const z = icons();
-        z[n] = i.value.trim() || defaults[n];
-        localStorage.setItem('boxicons_menu', JSON.stringify(z));
-        applyIcons();
-      };
-    });
-  }
-
-  function setTheme(v) {
-    root.dataset.theme = v;
-    localStorage.setItem('theme', v);
-    $('setting-theme').value = v;
-    if (chart) {
-      chart.destroy();
-      chart = null;
-      loadDashboard();
-    }
-  }
-
-  /* =========================================================
-     PALETTES DE COULEURS UNIFIÉES
-     ========================================================= */
-
-  const themePaletteDefaults = {
+  const lightPalettes = {
     classic: {
-      '--bg-body': '#f5f6f8',
-      '--bg-card': '#ffffff',
-      '--bg-input': '#ffffff',
-      '--text-main': '#343a40',
-      '--text-secondary': '#74788d',
-      '--border': '#e9ecef',
-      '--table-header': '#f8f9fa',
-      '--table-hover': '#f8f9fa',
-      '--sidebar-bg': '#2a3042',
-      '--sidebar-text': '#a6b0cf',
-      '--sidebar-active': '#556ee6',
-      '--accent': '#556ee6',
-      '--accent-hover': '#485ec4',
-      '--success': '#34c38f',
-      '--success-bg': '#e6f8f1',
-      '--warning': '#f1b44c',
-      '--warning-bg': '#fff6e5',
-      '--danger': '#f46a6a',
-      '--danger-bg': '#feecec',
-      '--info': '#50a5f1',
-      '--info-bg': '#eaf5fe'
+      '--bg-body': '#F5F6F8', '--bg-card': '#FFFFFF', '--bg-input': '#FFFFFF',
+      '--text-main': '#343A40', '--text-secondary': '#74788D', '--border': '#E9ECEF',
+      '--table-header': '#F8F9FA', '--table-hover': '#F8F9FA', '--sidebar-bg': '#2A3042',
+      '--sidebar-text': '#A6B0CF', '--sidebar-active': '#556EE6', '--accent': '#556EE6',
+      '--accent-hover': '#485EC4', '--secondary': '#74788D', '--secondary-hover': '#5F6375',
+      '--success': '#34C38F', '--success-bg': '#E6F8F1', '--warning': '#F1B44C',
+      '--warning-bg': '#FFF6E5', '--danger': '#F46A6A', '--danger-bg': '#FEECEC',
+      '--info': '#50A5F1', '--info-bg': '#EAF5FE'
     },
     girly: {
-      '--bg-body': '#fff7fb',
-      '--bg-card': '#ffffff',
-      '--bg-input': '#ffffff',
-      '--text-main': '#bd4f85',
-      '--text-secondary': '#d96a9d',
-      '--border': '#f0cfde',
-      '--table-header': '#fff0f6',
-      '--table-hover': '#fff5f9',
-      '--sidebar-bg': '#4a3040',
-      '--sidebar-text': '#f2c7db',
-      '--sidebar-active': '#d96a9d',
-      '--accent': '#d96a9d',
-      '--accent-hover': '#bd4f85',
-      '--success': '#63b99b',
-      '--success-bg': '#e9f8f0',
-      '--warning': '#d99748',
-      '--warning-bg': '#fff4df',
-      '--danger': '#df7386',
-      '--danger-bg': '#ffecef',
-      '--info': '#a779ce',
-      '--info-bg': '#f3eafa'
+      '--bg-body': '#FFF7FB', '--bg-card': '#FFFFFF', '--bg-input': '#FFFFFF',
+      '--text-main': '#BD4F85', '--text-secondary': '#D96A9D', '--border': '#F0CFDE',
+      '--table-header': '#FFF0F6', '--table-hover': '#FFF5F9', '--sidebar-bg': '#4A3040',
+      '--sidebar-text': '#F2C7DB', '--sidebar-active': '#D96A9D', '--accent': '#D96A9D',
+      '--accent-hover': '#BD4F85', '--secondary': '#A95E80', '--secondary-hover': '#8B4668',
+      '--success': '#63B99B', '--success-bg': '#E9F8F0', '--warning': '#D99748',
+      '--warning-bg': '#FFF4DF', '--danger': '#DF7386', '--danger-bg': '#FFECEF',
+      '--info': '#A779CE', '--info-bg': '#F3EAFA'
     },
     campagne: {
-      '--bg-body': '#f6f3ea',
-      '--bg-card': '#fffdf7',
-      '--bg-input': '#ffffff',
-      '--text-main': '#354337',
-      '--text-secondary': '#6f8f68',
-      '--border': '#d9d7c9',
-      '--table-header': '#ece8dc',
-      '--table-hover': '#f3f0e6',
-      '--sidebar-bg': '#354337',
-      '--sidebar-text': '#c8d6b8',
-      '--sidebar-active': '#6f8f68',
-      '--accent': '#6f8f68',
-      '--accent-hover': '#587451',
-      '--success': '#83a76f',
-      '--success-bg': '#edf4e8',
-      '--warning': '#bf944e',
-      '--warning-bg': '#fbf2e0',
-      '--danger': '#bf6e5f',
-      '--danger-bg': '#fbeae6',
-      '--info': '#628aa0',
-      '--info-bg': '#e8f1f3'
+      '--bg-body': '#F6F3EA', '--bg-card': '#FFFDF7', '--bg-input': '#FFFFFF',
+      '--text-main': '#354337', '--text-secondary': '#6F8F68', '--border': '#D9D7C9',
+      '--table-header': '#ECE8DC', '--table-hover': '#F3F0E6', '--sidebar-bg': '#354337',
+      '--sidebar-text': '#C8D6B8', '--sidebar-active': '#6F8F68', '--accent': '#6F8F68',
+      '--accent-hover': '#587451', '--secondary': '#72866F', '--secondary-hover': '#596E57',
+      '--success': '#83A76F', '--success-bg': '#EDF4E8', '--warning': '#BF944E',
+      '--warning-bg': '#FBF2E0', '--danger': '#BF6E5F', '--danger-bg': '#FBEAE6',
+      '--info': '#628AA0', '--info-bg': '#E8F1F3'
     },
     vegetal: {
-      '--bg-body': '#f4f7f0',
-      '--bg-card': '#ffffff',
-      '--bg-input': '#f9fbf7',
-      '--text-main': '#2b3a28',
-      '--text-secondary': '#5a6b54',
-      '--border': '#d4e0cc',
-      '--table-header': '#e8f0e0',
-      '--table-hover': '#f0f7eb',
-      '--sidebar-bg': '#2d5016',
-      '--sidebar-text': '#c8d6b8',
-      '--sidebar-active': '#5d8a2f',
-      '--accent': '#5d8a2f',
-      '--accent-hover': '#4a7024',
-      '--success': '#6b9b3f',
-      '--success-bg': '#e8f5d9',
-      '--warning': '#d4a04b',
-      '--warning-bg': '#fff8e6',
-      '--danger': '#c95a49',
-      '--danger-bg': '#fceae8',
-      '--info': '#4a8f6a',
-      '--info-bg': '#e0f0e8'
+      '--bg-body': '#F4F7F0', '--bg-card': '#FFFFFF', '--bg-input': '#F9FBF7',
+      '--text-main': '#2B3A28', '--text-secondary': '#5A6B54', '--border': '#D4E0CC',
+      '--table-header': '#E8F0E0', '--table-hover': '#F0F7EB', '--sidebar-bg': '#2D5016',
+      '--sidebar-text': '#C8D6B8', '--sidebar-active': '#5D8A2F', '--accent': '#5D8A2F',
+      '--accent-hover': '#4A7024', '--secondary': '#62785A', '--secondary-hover': '#4C6246',
+      '--success': '#6B9B3F', '--success-bg': '#E8F5D9', '--warning': '#D4A04B',
+      '--warning-bg': '#FFF8E6', '--danger': '#C95A49', '--danger-bg': '#FCEAE8',
+      '--info': '#4A8F6A', '--info-bg': '#E0F0E8'
+    }
+  };
+
+  const darkPalettes = {
+    classic: {
+      '--bg-body': '#1A1F2B', '--bg-card': '#222838', '--bg-input': '#2A3143',
+      '--text-main': '#EEF2F8', '--text-secondary': '#AEB8CA', '--border': '#3A4357',
+      '--table-header': '#283043', '--table-hover': '#313B50', '--sidebar-bg': '#161B27',
+      '--sidebar-text': '#AAB6CF', '--sidebar-active': '#6178E8', '--accent': '#7187EF',
+      '--accent-hover': '#91A2FF', '--secondary': '#758096', '--secondary-hover': '#8B97AE',
+      '--success': '#4FCA96', '--success-bg': '#1D4137', '--warning': '#F1BB56',
+      '--warning-bg': '#49391D', '--danger': '#F17A7A', '--danger-bg': '#4A292F',
+      '--info': '#67B2F6', '--info-bg': '#203D57'
+    },
+    girly: {
+      '--bg-body': '#241B23', '--bg-card': '#30212D', '--bg-input': '#3A2836',
+      '--text-main': '#F7EAF1', '--text-secondary': '#DFB5CA', '--border': '#573C4D',
+      '--table-header': '#3B2836', '--table-hover': '#48313F', '--sidebar-bg': '#21151D',
+      '--sidebar-text': '#EFC9DB', '--sidebar-active': '#B95787', '--accent': '#EA7EAE',
+      '--accent-hover': '#F2A0C5', '--secondary': '#A56883', '--secondary-hover': '#C47E9D',
+      '--success': '#71C9AB', '--success-bg': '#1E433A', '--warning': '#E9AE61',
+      '--warning-bg': '#4C371F', '--danger': '#EC8197', '--danger-bg': '#4B2934',
+      '--info': '#BA8CDD', '--info-bg': '#3E2B4C'
+    },
+    campagne: {
+      '--bg-body': '#1E251E', '--bg-card': '#283126', '--bg-input': '#323C2F',
+      '--text-main': '#EDF3E8', '--text-secondary': '#BAC9B3', '--border': '#465342',
+      '--table-header': '#323C30', '--table-hover': '#3B4938', '--sidebar-bg': '#192019',
+      '--sidebar-text': '#D1DFC6', '--sidebar-active': '#6F9469', '--accent': '#8EAE82',
+      '--accent-hover': '#ABC89D', '--secondary': '#7C9575', '--secondary-hover': '#98B290',
+      '--success': '#9ABB7D', '--success-bg': '#33452D', '--warning': '#D6AD68',
+      '--warning-bg': '#4A3A22', '--danger': '#D98573', '--danger-bg': '#4C2E2A',
+      '--info': '#79A5B8', '--info-bg': '#273D46'
+    },
+    vegetal: {
+      '--bg-body': '#172218', '--bg-card': '#202D21', '--bg-input': '#293829',
+      '--text-main': '#EDF6E9', '--text-secondary': '#B3C6AD', '--border': '#3D513D',
+      '--table-header': '#2A3929', '--table-hover': '#344633', '--sidebar-bg': '#142014',
+      '--sidebar-text': '#CBE0C4', '--sidebar-active': '#5B8B43', '--accent': '#78AD59',
+      '--accent-hover': '#9BC87C', '--secondary': '#6D8961', '--secondary-hover': '#8DAA7F',
+      '--success': '#82B95D', '--success-bg': '#2D4525', '--warning': '#D5AA55',
+      '--warning-bg': '#4B3B1D', '--danger': '#D86C59', '--danger-bg': '#4C2926',
+      '--info': '#5DA681', '--info-bg': '#244338'
     }
   };
 
   const themeColorLabels = {
-    '--bg-body': 'Fond général',
-    '--bg-card': 'Fond des cartes',
-    '--bg-input': 'Fond des champs',
-    '--text-main': 'Texte principal',
-    '--text-secondary': 'Texte secondaire',
-    '--border': 'Bordures',
-    '--table-header': 'En-tête de tableau',
-    '--table-hover': 'Ligne de tableau au survol',
-    '--sidebar-bg': 'Fond du menu',
-    '--sidebar-text': 'Texte du menu',
-    '--sidebar-active': 'Élément actif du menu',
-    '--accent': 'Couleur principale',
-    '--accent-hover': 'Couleur principale au survol',
-    '--success': 'Succès',
-    '--success-bg': 'Fond succès',
-    '--warning': 'Avertissement',
-    '--warning-bg': 'Fond avertissement',
-    '--danger': 'Erreur / suppression',
-    '--danger-bg': 'Fond erreur',
-    '--info': 'Information',
-    '--info-bg': 'Fond information'
+    '--bg-body': 'Fond général', '--bg-card': 'Fond des cartes', '--bg-input': 'Fond des champs',
+    '--text-main': 'Texte principal', '--text-secondary': 'Texte secondaire', '--border': 'Bordures',
+    '--table-header': 'En-tête de tableau', '--table-hover': 'Ligne de tableau au survol',
+    '--sidebar-bg': 'Fond du menu', '--sidebar-text': 'Texte du menu', '--sidebar-active': 'Élément actif du menu',
+    '--accent': 'Couleur principale', '--accent-hover': 'Couleur principale au survol',
+    '--secondary': 'Boutons secondaires', '--secondary-hover': 'Boutons secondaires au survol',
+    '--success': 'Succès', '--success-bg': 'Fond succès', '--warning': 'Avertissement',
+    '--warning-bg': 'Fond avertissement', '--danger': 'Erreur / suppression', '--danger-bg': 'Fond erreur',
+    '--info': 'Information', '--info-bg': 'Fond information'
   };
 
+  function getIcons() {
+    try { return JSON.parse(localStorage.getItem('boxicons_menu')) || {}; }
+    catch { return {}; }
+  }
+
+  function applyIcons() {
+    const x = getIcons();
+    document.querySelectorAll('#tabs button[data-tab]').forEach(b => {
+      const i = b.querySelector('.icon');
+      if (i) {
+        i.className = `icon ${x[b.dataset.tab] || defaultIcons[b.dataset.tab]}`;
+        i.textContent = '';
+      }
+    });
+    document.querySelectorAll('[data-preview-icon]').forEach(i => {
+      i.className = x[i.dataset.previewIcon] || defaultIcons[i.dataset.previewIcon];
+    });
+  }
+
+  function initIconFields() {
+    const x = getIcons();
+    document.querySelectorAll('[data-menu-icon]').forEach(i => {
+      const n = i.dataset.menuIcon;
+      i.value = x[n] || defaultIcons[n];
+      i.addEventListener('input', () => {
+        const z = getIcons();
+        z[n] = i.value.trim() || defaultIcons[n];
+        localStorage.setItem('boxicons_menu', JSON.stringify(z));
+        applyIcons();
+      });
+    });
+  }
+
   function getThemePaletteOverrides() {
-    try {
-      return JSON.parse(localStorage.getItem('themePaletteOverrides') || '{}');
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem('themePaletteOverrides') || '{}'); }
+    catch { return {}; }
   }
 
   function saveThemePaletteOverrides(overrides) {
@@ -226,27 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getPaletteColors(themeName) {
-    const activeTheme = themeName || root.dataset.colorTheme || 'classic';
-    const baseTheme = activeTheme === 'custom' ? 'classic' : activeTheme;
-    const defaultsPalette = themePaletteDefaults[baseTheme] || themePaletteDefaults.classic;
+    const palette = themeName || root.dataset.colorTheme || 'classic';
+    const mode = root.dataset.theme === 'dark' ? 'dark' : 'light';
+    const baseName = palette === 'custom' ? 'classic' : palette;
+    const base = (mode === 'dark' ? darkPalettes : lightPalettes)[baseName] || (mode === 'dark' ? darkPalettes.classic : lightPalettes.classic);
     const overrides = getThemePaletteOverrides();
-
-    return {
-      ...defaultsPalette,
-      ...(overrides[activeTheme] || {})
-    };
+    return { ...base, ...(overrides[palette]?.[mode] || {}) };
   }
 
   function applyPaletteColors(themeName) {
-    const activeTheme = themeName || root.dataset.colorTheme || 'classic';
-    const colors = getPaletteColors(activeTheme);
-
+    const colors = getPaletteColors(themeName);
     root.removeAttribute('style');
-
-    Object.entries(colors).forEach(([variable, value]) => {
-      root.style.setProperty(variable, value);
-    });
-
+    Object.entries(colors).forEach(([variable, value]) => root.style.setProperty(variable, value));
     if (chart) {
       chart.destroy();
       chart = null;
@@ -257,1204 +233,584 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderThemeColorFields() {
     const container = $('theme-color-fields');
     if (!container) return;
-
-    const activeTheme = root.dataset.colorTheme || 'classic';
-    const colors = getPaletteColors(activeTheme);
-
-    container.innerHTML = Object.entries(themeColorLabels)
-      .map(([variable, label]) => `
-        <label class="theme-color-field">
-          <span>${label}</span>
-          <input
-            type="color"
-            data-theme-color="${variable}"
-            value="${colors[variable]}"
-          >
-        </label>
-      `)
-      .join('');
-
+    const palette = root.dataset.colorTheme || 'classic';
+    const colors = getPaletteColors(palette);
+    container.innerHTML = Object.entries(themeColorLabels).map(([variable, label]) => {
+      const color = String(colors[variable] || '#000000').toUpperCase();
+      return `<label class="theme-color-field"><span class="theme-color-label">${label}</span><input type="color" data-theme-color="${variable}" value="${color}" aria-label="${label}"><code class="theme-color-hex" data-theme-color-hex="${variable}">${color}</code></label>`;
+    }).join('');
     container.querySelectorAll('[data-theme-color]').forEach(input => {
       input.addEventListener('input', event => {
-        const themeName = root.dataset.colorTheme || 'classic';
+        const paletteName = root.dataset.colorTheme || 'classic';
+        const mode = root.dataset.theme === 'dark' ? 'dark' : 'light';
+        const variable = event.target.dataset.themeColor;
+        const value = event.target.value.toUpperCase();
         const overrides = getThemePaletteOverrides();
-
-        overrides[themeName] = {
-          ...(overrides[themeName] || {}),
-          [event.target.dataset.themeColor]: event.target.value
-        };
-
+        overrides[paletteName] = overrides[paletteName] || {};
+        overrides[paletteName][mode] = { ...(overrides[paletteName][mode] || {}), [variable]: value };
         saveThemePaletteOverrides(overrides);
-        applyPaletteColors(themeName);
+        const hex = container.querySelector(`[data-theme-color-hex="${variable}"]`);
+        if (hex) hex.textContent = value;
+        applyPaletteColors(paletteName);
       });
     });
   }
 
   function resetThemeColors() {
-    const activeTheme = root.dataset.colorTheme || 'classic';
+    const palette = root.dataset.colorTheme || 'classic';
+    const mode = root.dataset.theme === 'dark' ? 'dark' : 'light';
     const overrides = getThemePaletteOverrides();
-
-    delete overrides[activeTheme];
-
+    if (overrides[palette]) delete overrides[palette][mode];
     saveThemePaletteOverrides(overrides);
-    applyPaletteColors(activeTheme);
+    applyPaletteColors(palette);
     renderThemeColorFields();
   }
 
-  function setColorTheme(v) {
-    const allowedThemes = ['classic', 'girly', 'campagne', 'vegetal', 'custom'];
-    const themeName = allowedThemes.includes(v) ? v : 'classic';
-
-    root.dataset.colorTheme = themeName;
-    localStorage.setItem('colorTheme', themeName);
-
-    applyPaletteColors(themeName);
+  function setTheme(value) {
+    const theme = value === 'dark' ? 'dark' : 'light';
+    root.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+    if ($('setting-theme')) $('setting-theme').value = theme;
+    if ($('setting-theme-palette')) $('setting-theme-palette').value = theme;
+    applyPaletteColors(root.dataset.colorTheme || 'classic');
     renderThemeColorFields();
-
-    document.querySelectorAll('#setting-color-theme, #setting-color-theme-menu').forEach(select => {
-      select.value = themeName;
-    });
   }
 
-  function setLayout(v) {
-    root.dataset.layout = v;
-    localStorage.setItem('layout', v);
-    $('setting-layout').value = v;
+  function setColorTheme(value) {
+    const palette = ['classic', 'girly', 'campagne', 'vegetal', 'custom'].includes(value) ? value : 'classic';
+    root.dataset.colorTheme = palette;
+    localStorage.setItem('colorTheme', palette);
+    if ($('setting-color-theme')) $('setting-color-theme').value = palette;
+    applyPaletteColors(palette);
+    renderThemeColorFields();
   }
 
-  function setSidebar(v) {
-    root.dataset.sidebar = v;
-    localStorage.setItem('sidebar', v);
-    $('setting-sidebar').value = v;
+  function setLayout(value) {
+    root.dataset.layout = value;
+    localStorage.setItem('layout', value);
+    if ($('setting-layout')) $('setting-layout').value = value;
+  }
+
+  function setSidebar(value) {
+    root.dataset.sidebar = value;
+    localStorage.setItem('sidebar', value);
+    if ($('setting-sidebar')) $('setting-sidebar').value = value;
   }
 
   function closeMenus() {
-    $('settings-menu')?.classList.remove('open');
-    $('user-menu')?.classList.remove('open');
-    $('bell-menu')?.classList.remove('open');
-    $('unpaid-menu')?.classList.remove('open');
+    ['settings-menu', 'user-menu', 'bell-menu', 'unpaid-menu'].forEach(id => $(id)?.classList.remove('open'));
   }
 
-  function openTab(n) {
-    document.querySelector(`#tabs button[data-tab="${n}"]`)?.click();
+  function openTab(name) {
+    document.querySelector(`#tabs button[data-tab="${name}"]`)?.click();
   }
 
-  function profile() {
+  function loadLocalProfile() {
     const p = localStorage.getItem('profil_pseudo') || 'Admin';
-    [
-      ['pf-pseudo', p],
-      ['pf-societe', localStorage.getItem('profil_societe') || ''],
-      ['pf-adresse', localStorage.getItem('profil_adresse') || ''],
-      ['pf-code-postal', localStorage.getItem('profil_code_postal') || ''],
-      ['pf-ville', localStorage.getItem('profil_ville') || ''],
-      ['topbar-user-name', p],
-      ['menu-user-name', p],
-      ['dashboard-user-name', p]
-    ].forEach(([id, val]) => {
-      if ($(id)) {
-        if ($(id).value !== undefined) {
-          $(id).value = val;
-        } else {
-          $(id).textContent = val;
-        }
-      }
+    const s = localStorage.getItem('profil_societe') || '';
+    const a = localStorage.getItem('profil_adresse') || '';
+    const cp = localStorage.getItem('profil_code_postal') || '';
+    const v = localStorage.getItem('profil_ville') || '';
+    [['pf-pseudo', p], ['pf-societe', s], ['pf-adresse', a], ['pf-code-postal', cp], ['pf-ville', v], ['topbar-user-name', p], ['menu-user-name', p], ['dashboard-user-name', p]].forEach(([id, value]) => {
+      if ($(id)) $(id).value !== undefined ? $(id).value = value : $(id).textContent = value;
     });
-    document.querySelectorAll('.user-avatar').forEach(x => {
-      x.textContent = (p[0]?.toUpperCase() || 'A');
-    });
+    document.querySelectorAll('.user-avatar').forEach(x => x.textContent = p[0]?.toUpperCase() || 'A');
   }
 
-  document.querySelectorAll('#tabs button').forEach(b => {
-    b.onclick = () => {
-      document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      $(b.dataset.tab)?.classList.add('active');
-      $('page-title').textContent = titles[b.dataset.tab] || '';
-      layout.classList.remove('mobile-menu');
-      closeMenus();
-      if (b.dataset.tab === 'dashboard') loadDashboard();
-      if (b.dataset.tab === 'calendrier') renderCalendar();
-    };
-  });
-
-  $('sidebar-toggle').onclick = () => {
-    if (innerWidth <= 780) {
-      layout.classList.toggle('mobile-menu');
-    } else {
-      setSidebar(root.dataset.sidebar === 'compact' ? 'normal' : 'compact');
-    }
-  };
-
-  $('settings-toggle').onclick = e => {
-    e.stopPropagation();
+  document.querySelectorAll('#tabs button').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    button.classList.add('active');
+    $(button.dataset.tab)?.classList.add('active');
+    if ($('page-title')) $('page-title').textContent = titles[button.dataset.tab] || '';
+    layout?.classList.remove('mobile-menu');
     closeMenus();
-    $('settings-menu').classList.toggle('open');
-  };
+    if (button.dataset.tab === 'dashboard') loadDashboard();
+    if (button.dataset.tab === 'calendrier') renderCalendar();
+  }));
 
-  $('user-toggle').onclick = e => {
-    e.stopPropagation();
-    closeMenus();
-    $('user-menu').classList.toggle('open');
-  };
+  $('sidebar-toggle')?.addEventListener('click', () => innerWidth <= 780 ? layout?.classList.toggle('mobile-menu') : setSidebar(root.dataset.sidebar === 'compact' ? 'normal' : 'compact'));
+  $('settings-toggle')?.addEventListener('click', e => { e.stopPropagation(); closeMenus(); $('settings-menu')?.classList.toggle('open'); });
+  $('user-toggle')?.addEventListener('click', e => { e.stopPropagation(); closeMenus(); $('user-menu')?.classList.toggle('open'); });
+  $('bell-toggle')?.addEventListener('click', e => { e.stopPropagation(); closeMenus(); $('bell-menu')?.classList.toggle('open'); });
+  $('unpaid-toggle')?.addEventListener('click', e => { e.stopPropagation(); closeMenus(); $('unpaid-menu')?.classList.toggle('open'); });
+  document.addEventListener('click', e => { if (!e.target.closest('.topbar-menu-wrap')) closeMenus(); });
 
-  $('bell-toggle').onclick = e => {
-    e.stopPropagation();
-    closeMenus();
-    $('bell-menu').classList.toggle('open');
-  };
+  $('setting-theme')?.addEventListener('change', e => setTheme(e.target.value));
+  $('setting-theme-palette')?.addEventListener('change', e => setTheme(e.target.value));
+  $('setting-layout')?.addEventListener('change', e => setLayout(e.target.value));
+  $('setting-sidebar')?.addEventListener('change', e => setSidebar(e.target.value));
+  $('setting-color-theme')?.addEventListener('change', e => setColorTheme(e.target.value));
+  $('reset-theme-colors')?.addEventListener('click', resetThemeColors);
+  $('save-custom-theme')?.addEventListener('click', () => alert('Couleurs du theme enregistrees'));
 
-  $('unpaid-toggle').onclick = e => {
-    e.stopPropagation();
-    closeMenus();
-    $('unpaid-menu').classList.toggle('open');
-  };
+  $('open-reglages-btn')?.addEventListener('click', () => { closeMenus(); openTab('reglages'); });
+  $('edit-profile-btn')?.addEventListener('click', () => { $('profile-modal')?.classList.add('visible'); closeMenus(); });
+  $('fermer-profil')?.addEventListener('click', () => $('profile-modal')?.classList.remove('visible'));
+  $('fermer-notifs')?.addEventListener('click', () => $('modal-notifs')?.classList.remove('visible'));
+  $('fermer-facture')?.addEventListener('click', () => $('modal-facture')?.classList.remove('visible'));
+  document.querySelectorAll('[data-open-tab]').forEach(b => b.addEventListener('click', () => openTab(b.dataset.openTab)));
 
-  document.onclick = e => {
-    if (!e.target.closest('.topbar-menu-wrap')) closeMenus();
-  };
-
-  $('setting-theme').onchange = e => setTheme(e.target.value);
-  $('setting-layout').onchange = e => setLayout(e.target.value);
-  $('setting-sidebar').onchange = e => setSidebar(e.target.value);
-  $('setting-color-theme').onchange = e => setColorTheme(e.target.value);
-
-  $('open-reglages-btn').onclick = () => {
-    closeMenus();
-    openTab('reglages');
-  };
-
-  $('edit-profile-btn').onclick = () => {
-    $('profile-modal').classList.add('visible');
-    closeMenus();
-  };
-
-  $('fermer-profil').onclick = () => $('profile-modal').classList.remove('visible');
-  $('fermer-notifs').onclick = () => $('modal-notifs').classList.remove('visible');
-  $('fermer-facture').onclick = () => $('modal-facture').classList.remove('visible');
-
-  document.querySelectorAll('[data-open-tab]').forEach(b => {
-    b.onclick = () => openTab(b.dataset.openTab);
-  });
-
-  $('form-profil').onsubmit = async e => {
+  $('form-profil')?.addEventListener('submit', async e => {
     e.preventDefault();
     const p = $('pf-pseudo').value.trim() || 'Admin';
+    const s = $('pf-societe').value.trim();
+    const a = $('pf-adresse').value.trim();
+    const cp = $('pf-code-postal').value.trim();
+    const v = $('pf-ville').value.trim();
     localStorage.setItem('profil_pseudo', p);
-    localStorage.setItem('profil_societe', $('pf-societe').value);
-    localStorage.setItem('profil_adresse', $('pf-adresse').value);
-    localStorage.setItem('profil_code_postal', $('pf-code-postal').value);
-    localStorage.setItem('profil_ville', $('pf-ville').value);
-    profile();
-    $('profile-modal').classList.remove('visible');
-  };
+    localStorage.setItem('profil_societe', s);
+    localStorage.setItem('profil_adresse', a);
+    localStorage.setItem('profil_code_postal', cp);
+    localStorage.setItem('profil_ville', v);
+    if (settings.id) await db.from('reglages').update({ nom_entreprise: s, adresse: a, code_postal_entreprise: cp, ville_entreprise: v }).eq('id', settings.id);
+    loadLocalProfile();
+    $('profile-modal')?.classList.remove('visible');
+  });
 
-  async function geocode(q) {
+  async function geocode(query) {
     try {
-      const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=fr&q=${encodeURIComponent(q)}`,
-        { headers: { 'Accept-Language': 'fr' } }
-      );
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=fr&q=${encodeURIComponent(query)}`, { headers: { 'Accept-Language': 'fr' } });
       return await r.json();
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   async function road(a, b, c, d) {
     try {
-      const r = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${b},${a};${d},${c}?overview=false`
-      );
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${b},${a};${d},${c}?overview=false`);
       const x = await r.json();
       return x.routes?.[0] ? x.routes[0].distance / 1000 : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
-  function showSearch(results) {
+  function displayStableSearchResults(results) {
     const box = $('ec-recherche-resultats');
     if (!box) return;
     if (!results.length) {
-      box.innerHTML = '<p class="aide">Aucune ecurie trouvee. Saisie manuelle possible ci-dessous.</p>';
+      box.innerHTML = '<p class="aide">Aucune ecurie trouvee. Tu peux la saisir manuellement ci-dessous.</p>';
       box.classList.add('visible');
       return;
     }
-    box.innerHTML = results
-      .map((r, i) => {
-        const a = r.address || {};
-        return `
-          <button type="button" class="stable-result" data-i="${i}">
-            <strong>${esc(r.name || r.display_name.split(',')[0])}</strong>
-            <span>${esc(r.display_name || '')}</span>
-            <small>${esc(a.postcode || '')} ${esc(a.city || a.town || a.village || a.municipality || '')}</small>
-          </button>
-        `;
-      })
-      .join('');
+    box.innerHTML = results.map((r, i) => {
+      const a = r.address || {};
+      const city = a.city || a.town || a.village || a.municipality || '';
+      return `<button type="button" class="stable-result" data-result-index="${i}"><strong>${safe(r.name || r.display_name?.split(',')[0] || '')}</strong><span>${safe(r.display_name || '')}</span><small>${safe(a.postcode || '')} ${safe(city)}</small></button>`;
+    }).join('');
     box.classList.add('visible');
-    box.querySelectorAll('[data-i]').forEach(b => {
-      b.onclick = () => {
-        const r = results[Number(b.dataset.i)];
-        const a = r.address || {};
-        $('ec-nom').value = r.name || r.display_name.split(',')[0];
-        $('ec-adresse').value = `${a.house_number || ''} ${a.road || a.pedestrian || ''}`.trim();
-        $('ec-cp').value = a.postcode || '';
-        $('ec-ville').value = a.city || a.town || a.village || a.municipality || '';
-        $('ec-lat').value = r.lat || '';
-        $('ec-lon').value = r.lon || '';
-        $('ec-coords-statut').textContent = 'Coordonnees trouvees';
-        box.classList.remove('visible');
-      };
-    });
+    box.querySelectorAll('[data-result-index]').forEach(b => b.onclick = () => selectStableSearchResult(results[Number(b.dataset.resultIndex)]));
   }
 
-  $('ec-rechercher').onclick = async () => {
-    const n = $('ec-recherche-nom').value.trim();
-    const v = $('ec-recherche-ville').value.trim();
-    if (!n && !v) return alert('Saisis un nom ou une ville.');
-    const b = $('ec-rechercher');
-    b.disabled = true;
-    b.textContent = 'Recherche...';
-    showSearch(await geocode(`${n} ${v} France`));
-    b.disabled = false;
-    b.textContent = 'Rechercher';
-  };
+  function selectStableSearchResult(r) {
+    const a = r.address || {};
+    if ($('ec-nom')) $('ec-nom').value = r.name || r.display_name?.split(',')[0] || '';
+    if ($('ec-adresse')) $('ec-adresse').value = `${a.house_number || ''} ${a.road || a.pedestrian || ''}`.trim();
+    if ($('ec-cp')) $('ec-cp').value = a.postcode || '';
+    if ($('ec-ville')) $('ec-ville').value = a.city || a.town || a.village || a.municipality || '';
+    if ($('ec-lat')) $('ec-lat').value = r.lat || '';
+    if ($('ec-lon')) $('ec-lon').value = r.lon || '';
+    if ($('ec-coords-statut')) $('ec-coords-statut').textContent = 'Coordonnees trouvees';
+    $('ec-recherche-resultats')?.classList.remove('visible');
+  }
+
+  $('ec-rechercher')?.addEventListener('click', async () => {
+    const nom = $('ec-recherche-nom')?.value.trim() || '';
+    const ville = $('ec-recherche-ville')?.value.trim() || '';
+    if (!nom && !ville) return alert('Saisis un nom ou une ville.');
+    const btn = $('ec-rechercher');
+    btn.disabled = true;
+    btn.textContent = 'Recherche...';
+    displayStableSearchResults(await geocode(`${nom} ${ville} France`));
+    btn.disabled = false;
+    btn.textContent = 'Rechercher';
+  });
+
+  function paymentLabel(value) {
+    return { espece: 'Espece', cheque: 'Cheque', virement: 'Virement', sans_contact: 'Sans contact' }[value] || value;
+  }
+
+  function renderPaymentOptions() {
+    const opts = (settings.types_paiement || []).map(v => `<option value="${v}">${paymentLabel(v)}</option>`).join('');
+    if ($('fa-paiement')) $('fa-paiement').innerHTML = '<option value="">-- Type de paiement --</option>' + opts;
+    if ($('filtre-paiement')) $('filtre-paiement').innerHTML = '<option value="">Tous les paiements</option>' + opts;
+  }
+
+  function nomEntreprise(name) {
+    if ($('sidebar-company-name')) $('sidebar-company-name').textContent = String(name || '').trim() || 'PHOTO EQUESTRE';
+  }
 
   async function loadSettings() {
     const { data, error } = await db.from('reglages').select('*').limit(1).single();
     if (error) return console.error(error);
-    if (data) {
-      settings = {
-        ...settings,
-        ...data,
-        rappels_jours: data.rappels_jours?.length ? data.rappels_jours : settings.rappels_jours,
-        types_paiement: data.types_paiement?.length ? data.types_paiement : settings.types_paiement,
-        rappel_affichage_limite: data.rappel_affichage_limite || 3
-      };
-      document.querySelectorAll('.rg-rappel').forEach(c => {
-        c.checked = settings.rappels_jours.includes(Number(c.value));
-      });
-      document.querySelectorAll('.rg-paiement').forEach(c => {
-        c.checked = settings.types_paiement.includes(c.value);
-      });
-      $('rg-bell-limite').value = settings.rappel_affichage_limite;
-      nomEntreprise(data.nom_entreprise);
-      renderPayments();
-    }
+    if (!data) return;
+    settings = { ...settings, ...data, rappels_jours: data.rappels_jours?.length ? data.rappels_jours : settings.rappels_jours, rappel_affichage_limite: data.rappel_affichage_limite || 3, types_paiement: data.types_paiement?.length ? data.types_paiement : settings.types_paiement };
+    [['rg-nom-entreprise', data.nom_entreprise], ['rg-adresse-entreprise', data.adresse], ['rg-code-postal-entreprise', data.code_postal_entreprise], ['rg-ville-entreprise', data.ville_entreprise], ['rg-siret', data.siret], ['rg-domicile-adresse', data.domicile_adresse], ['rg-domicile-lat', data.domicile_latitude], ['rg-domicile-lon', data.domicile_longitude], ['rg-cv', data.puissance_fiscale_cv || 4], ['rg-taux', data.taux_km || .606], ['rg-tva', data.mention_tva], ['rg-prefixe', data.prefixe_facture], ['rg-vehicule-marque', data.vehicule_marque], ['rg-vehicule-modele', data.vehicule_modele], ['rg-vehicule-annee', data.vehicule_annee], ['rg-vehicule-energie', data.vehicule_energie || 'essence'], ['rg-bell-limite', settings.rappel_affichage_limite]].forEach(([id, value]) => { if ($(id)) $(id).value = value ?? ''; });
+    document.querySelectorAll('.rg-rappel').forEach(c => c.checked = settings.rappels_jours.includes(Number(c.value)));
+    document.querySelectorAll('.rg-paiement').forEach(c => c.checked = settings.types_paiement.includes(c.value));
+    nomEntreprise(data.nom_entreprise);
+    loadLocalProfile();
+    renderPaymentOptions();
   }
 
-  function nomEntreprise(n) {
-    $('sidebar-company-name').textContent = String(n || '').trim() || 'PHOTO EQUESTRE';
-  }
-
-  function paymentLabel(v) {
-    return {
-      espece: 'Espece',
-      cheque: 'Cheque',
-      virement: 'Virement',
-      sans_contact: 'Sans contact'
-    }[v] || v;
-  }
-
-  function renderPayments() {
-    const o = (settings.types_paiement || [])
-      .map(v => `<option value="${v}">${paymentLabel(v)}</option>`)
-      .join('');
-    $('fa-paiement').innerHTML = '<option value="">-- Type de paiement --</option>' + o;
-    $('filtre-paiement').innerHTML = '<option value="">Tous les paiements</option>' + o;
-  }
-
-  $('form-reglages').onsubmit = async e => {
+  $('form-reglages')?.addEventListener('submit', async e => {
     e.preventDefault();
     const p = {
-      nom_entreprise: $('rg-nom-entreprise').value,
-      adresse: $('rg-adresse-entreprise').value,
-      code_postal_entreprise: $('rg-code-postal-entreprise').value,
-      ville_entreprise: $('rg-ville-entreprise').value,
-      siret: $('rg-siret').value,
-      mention_tva: $('rg-tva').value,
-      prefixe_facture: $('rg-prefixe').value,
-      rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(x => Number(x.value)),
-      rappel_affichage_limite: Number($('rg-bell-limite').value) || 3,
-      types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(x => x.value)
+      nom_entreprise: $('rg-nom-entreprise')?.value || '', adresse: $('rg-adresse-entreprise')?.value || '', code_postal_entreprise: $('rg-code-postal-entreprise')?.value || '', ville_entreprise: $('rg-ville-entreprise')?.value || '', siret: $('rg-siret')?.value || '', domicile_adresse: $('rg-domicile-adresse')?.value || '', domicile_latitude: $('rg-domicile-lat')?.value || null, domicile_longitude: $('rg-domicile-lon')?.value || null, puissance_fiscale_cv: $('rg-cv')?.value || 4, taux_km: $('rg-taux')?.value || .606, mention_tva: $('rg-tva')?.value || '', prefixe_facture: $('rg-prefixe')?.value || '', vehicule_marque: $('rg-vehicule-marque')?.value || '', vehicule_modele: $('rg-vehicule-modele')?.value || '', vehicule_annee: $('rg-vehicule-annee')?.value || null, vehicule_energie: $('rg-vehicule-energie')?.value || 'essence', rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(c => Number(c.value)), rappel_affichage_limite: Number($('rg-bell-limite')?.value) || 3, types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(c => c.value)
     };
+    if (!p.rappels_jours.length) p.rappels_jours = [7];
+    if (!p.types_paiement.length) p.types_paiement = ['espece', 'cheque', 'virement', 'sans_contact'];
+    const file = $('rg-logo')?.files?.[0];
+    if (file) {
+      const path = `${Date.now()}-${file.name}`;
+      const upload = await db.storage.from('logos').upload(path, file, { upsert: true });
+      if (!upload.error) p.logo_url = db.storage.from('logos').getPublicUrl(path).data.publicUrl;
+    }
     const { error } = await db.from('reglages').update(p).eq('id', settings.id);
     if (error) return alert(error.message);
     await loadSettings();
+    refreshBell();
     alert('Reglages enregistres');
-  };
+  });
 
   async function loadStables() {
     const { data, error } = await db.from('ecuries').select('*').order('nom');
     if (error) return console.error(error);
-    ecuries = data;
-    const { data: ca } = await db.from('cavalieres').select('id, ecurie_id');
-    $('table-ecuries').querySelector('tbody').innerHTML = ecuries
-      .map(e => `
-        <tr>
-          <td>${esc(e.nom)}</td>
-          <td>${esc(e.adresse)}</td>
-          <td>${esc(e.code_postal)}</td>
-          <td>${esc(e.ville)}</td>
-          <td>${e.distance_domicile_km ? e.distance_domicile_km.toFixed(1) + ' km A/R' : '-'}</td>
-          <td>${(ca || []).filter(x => x.ecurie_id === e.id).length}</td>
-          <td>
-            <button data-edit="${e.id}">Modifier</button>
-            <button class="btn-danger" data-del="${e.id}">Supprimer</button>
-          </td>
-        </tr>
-      `)
-      .join('');
-    $('table-ecuries').querySelectorAll('[data-edit]').forEach(b => {
-      b.onclick = () => editStable(b.dataset.edit);
-    });
-    $('table-ecuries').querySelectorAll('[data-del]').forEach(b => {
-      b.onclick = () => deleteStable(b.dataset.del);
-    });
-    const o = '<option value="">-- Ecurie --</option>' + ecuries
-      .map(e => `<option value="${e.id}">${esc(e.nom)}</option>`)
-      .join('');
-    $('cav-ecurie').innerHTML = o;
-    $('sh-ecurie').innerHTML = '<option value="">-- Ecurie / lieu --</option>' + ecuries
-      .map(e => `<option value="${e.id}">${esc(e.nom)}</option>`)
-      .join('');
+    ecuries = data || [];
+    const { data: riders } = await db.from('cavalieres').select('id,ecurie_id');
+    if ($('table-ecuries')) $('table-ecuries').querySelector('tbody').innerHTML = ecuries.map(e => `<tr><td>${safe(e.nom)}</td><td>${safe(e.adresse || '')}</td><td>${safe(e.code_postal || '')}</td><td>${safe(e.ville || '')}</td><td>${e.distance_domicile_km ? Number(e.distance_domicile_km).toFixed(1) + ' km A/R' : '-'}</td><td>${(riders || []).filter(r => r.ecurie_id === e.id).length}</td><td><button data-edit-stable="${e.id}">Modifier</button><button class="btn-danger" data-delete-stable="${e.id}">Supprimer</button></td></tr>`).join('');
+    document.querySelectorAll('[data-edit-stable]').forEach(b => b.onclick = () => editStable(b.dataset.editStable));
+    document.querySelectorAll('[data-delete-stable]').forEach(b => b.onclick = () => deleteStable(b.dataset.deleteStable));
+    const options = ecuries.map(e => `<option value="${e.id}">${safe(e.nom)}</option>`).join('');
+    if ($('cav-ecurie')) $('cav-ecurie').innerHTML = '<option value="">-- Ecurie --</option>' + options;
+    if ($('sh-ecurie')) $('sh-ecurie').innerHTML = '<option value="">-- Ecurie / lieu --</option>' + options;
   }
 
   function editStable(id) {
-    const e = ecuries.find(x => x.id == id);
+    const e = ecuries.find(x => String(x.id) === String(id));
     if (!e) return;
     currentEcurie = id;
-    [
-      ['ec-nom', e.nom],
-      ['ec-ville', e.ville],
-      ['ec-adresse', e.adresse],
-      ['ec-cp', e.code_postal],
-      ['ec-contact-nom', e.contact_nom],
-      ['ec-lat', e.latitude],
-      ['ec-lon', e.longitude]
-    ].forEach(([i, v]) => $(i).value = v || '');
-    $('ec-submit-btn').textContent = 'Enregistrer';
-    $('ec-annuler').style.display = 'inline-block';
+    [['ec-nom', e.nom], ['ec-ville', e.ville], ['ec-adresse', e.adresse], ['ec-cp', e.code_postal], ['ec-contact-nom', e.contact_nom], ['ec-lat', e.latitude], ['ec-lon', e.longitude]].forEach(([key, value]) => { if ($(key)) $(key).value = value || ''; });
+    if ($('ec-submit-btn')) $('ec-submit-btn').textContent = 'Enregistrer';
+    if ($('ec-annuler')) $('ec-annuler').style.display = 'inline-block';
     openTab('ecuries');
   }
 
-  $('ec-annuler').onclick = () => {
-    currentEcurie = null;
-    $('form-ecurie').reset();
-    $('ec-submit-btn').textContent = 'Ajouter';
-    $('ec-annuler').style.display = 'none';
-  };
+  $('ec-annuler')?.addEventListener('click', () => { currentEcurie = null; $('form-ecurie')?.reset(); if ($('ec-submit-btn')) $('ec-submit-btn').textContent = 'Ajouter'; $('ec-annuler').style.display = 'none'; });
 
   async function deleteStable(id) {
-    if (confirm('Supprimer cette ecurie ?')) {
-      await db.from('ecuries').delete().eq('id', id);
-      loadStables();
-    }
+    if (!confirm('Supprimer cette ecurie ?')) return;
+    const { error } = await db.from('ecuries').delete().eq('id', id);
+    if (error) return alert(error.message);
+    loadStables();
   }
 
-  $('form-ecurie').onsubmit = async e => {
+  $('form-ecurie')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const lat = $('ec-lat').value || null;
-    const lon = $('ec-lon').value || null;
-    const d = lat && lon && settings.domicile_latitude && settings.domicile_longitude
-      ? await road(settings.domicile_latitude, settings.domicile_longitude, lat, lon)
-      : null;
-    const p = {
-      nom: $('ec-nom').value,
-      ville: $('ec-ville').value,
-      adresse: $('ec-adresse').value || null,
-      code_postal: $('ec-cp').value || null,
-      contact_nom: $('ec-contact-nom').value || null,
-      latitude: lat,
-      longitude: lon,
-      distance_domicile_km: d
-    };
-    const q = currentEcurie
-      ? db.from('ecuries').update(p).eq('id', currentEcurie)
-      : db.from('ecuries').insert(p);
-    const r = await q;
-    if (r.error) return alert(r.error.message);
-    $('ec-annuler').click();
+    const lat = $('ec-lat')?.value || null;
+    const lon = $('ec-lon')?.value || null;
+    const distance = lat && lon && settings.domicile_latitude && settings.domicile_longitude ? await road(settings.domicile_latitude, settings.domicile_longitude, lat, lon) : null;
+    const p = { nom: $('ec-nom').value, ville: $('ec-ville').value, adresse: $('ec-adresse')?.value || null, code_postal: $('ec-cp')?.value || null, contact_nom: $('ec-contact-nom')?.value || null, latitude: lat, longitude: lon, distance_domicile_km: distance };
+    const result = currentEcurie ? await db.from('ecuries').update(p).eq('id', currentEcurie) : await db.from('ecuries').insert(p);
+    if (result.error) return alert(result.error.message);
+    $('ec-annuler')?.click();
     loadStables();
-  };
+  });
 
   async function loadRiders() {
-    const { data, error } = await db.from('cavalieres').select('*, ecuries(nom)').order('prenom');
+    const { data, error } = await db.from('cavalieres').select('*,ecuries(nom)').order('prenom');
     if (error) return console.error(error);
-    cavaliers = data;
-    const { data: fa } = await db.from('factures').select('id, cavaliere_id');
-    const q = ($('filtre-cavalieres').value || '').toLowerCase();
-    const x = cavaliers.filter(c =>
-      `${c.prenom || ''} ${c.nom || ''} ${c.ecuries?.nom || ''}`.toLowerCase().includes(q)
-    );
-    $('table-cavalieres').querySelector('tbody').innerHTML = x
-      .map(c => `
-        <tr data-rider-id="${c.id}">
-          <td>${esc(c.prenom)}</td>
-          <td>${esc(c.nom)}</td>
-          <td>${esc(c.ecuries?.nom) || '-'}</td>
-          <td>${esc(c.nom_cheval) || '-'}</td>
-          <td>${c.ambassadeur ? '<i class="bx bxs-star star-ambassadeur"></i> Oui' : 'Non'}</td>
-          <td>${(fa || []).filter(z => z.cavaliere_id === c.id).length}</td>
-          <td>
-            <button data-edit="${c.id}">Modifier</button>
-            <button class="btn-danger" data-del="${c.id}">Supprimer</button>
-          </td>
-        </tr>
-      `)
-      .join('');
-    $('table-cavalieres').querySelectorAll('[data-edit]').forEach(b => {
-      b.onclick = () => editRider(b.dataset.edit);
-    });
-    $('table-cavalieres').querySelectorAll('[data-del]').forEach(b => {
-      b.onclick = () => deleteRider(b.dataset.del);
-    });
-    const o = '<option value="">-- Cavalier(e) --</option>' + cavaliers
-      .map(c => `<option value="${c.id}">${c.ambassadeur ? '* ' : ''}${esc(c.prenom)} ${esc(c.nom)}</option>`)
-      .join('');
-    $('fa-cavaliere').innerHTML = o;
-    $('sh-cavaliere').innerHTML = '<option value="">-- Cavalier(e) (optionnel) --</option>' + cavaliers
-      .map(c => `<option value="${c.id}">${c.ambassadeur ? '* ' : ''}${esc(c.prenom)} ${esc(c.nom)}</option>`)
-      .join('');
+    cavaliers = data || [];
+    const { data: invoices } = await db.from('factures').select('id,cavaliere_id');
+    const query = ($('filtre-cavalieres')?.value || '').toLowerCase();
+    const filtered = cavaliers.filter(c => `${c.prenom || ''} ${c.nom || ''} ${c.ecuries?.nom || ''}`.toLowerCase().includes(query));
+    if ($('table-cavalieres')) $('table-cavalieres').querySelector('tbody').innerHTML = filtered.map(c => `<tr><td>${safe(c.prenom)}</td><td>${safe(c.nom)}</td><td>${safe(c.ecuries?.nom || '-')}</td><td>${safe(c.nom_cheval || '-')}</td><td>${c.ambassadeur ? '<i class="bx bxs-star star-ambassadeur"></i> Oui' : 'Non'}</td><td>${(invoices || []).filter(f => f.cavaliere_id === c.id).length}</td><td><button data-edit-rider="${c.id}">Modifier</button><button class="btn-danger" data-delete-rider="${c.id}">Supprimer</button></td></tr>`).join('');
+    document.querySelectorAll('[data-edit-rider]').forEach(b => b.onclick = () => editRider(b.dataset.editRider));
+    document.querySelectorAll('[data-delete-rider]').forEach(b => b.onclick = () => deleteRider(b.dataset.deleteRider));
+    const options = cavaliers.map(c => `<option value="${c.id}">${c.ambassadeur ? '* ' : ''}${safe(c.prenom)} ${safe(c.nom)}</option>`).join('');
+    if ($('fa-cavaliere')) $('fa-cavaliere').innerHTML = '<option value="">-- Cavalier(e) --</option>' + options;
+    if ($('sh-cavaliere')) $('sh-cavaliere').innerHTML = '<option value="">-- Cavalier(e) (optionnel) --</option>' + options;
   }
 
   function editRider(id) {
-    const c = cavaliers.find(x => x.id == id);
+    const c = cavaliers.find(x => String(x.id) === String(id));
     if (!c) return;
     currentCavaliere = id;
-    [
-      ['cav-prenom', c.prenom],
-      ['cav-nom', c.nom],
-      ['cav-ecurie', c.ecurie_id],
-      ['cav-cheval', c.nom_cheval],
-      ['cav-tel', c.telephone],
-      ['cav-email', c.email]
-    ].forEach(([i, v]) => $(i).value = v || '');
-    $('cav-ambassadeur').checked = !!c.ambassadeur;
-    $('cav-submit-btn').textContent = 'Enregistrer';
-    $('cav-annuler').style.display = 'inline-block';
+    [['cav-prenom', c.prenom], ['cav-nom', c.nom], ['cav-ecurie', c.ecurie_id], ['cav-cheval', c.nom_cheval], ['cav-tel', c.telephone], ['cav-email', c.email]].forEach(([key, value]) => { if ($(key)) $(key).value = value || ''; });
+    if ($('cav-ambassadeur')) $('cav-ambassadeur').checked = !!c.ambassadeur;
+    if ($('cav-submit-btn')) $('cav-submit-btn').textContent = 'Enregistrer';
+    if ($('cav-annuler')) $('cav-annuler').style.display = 'inline-block';
     openTab('cavaliers');
   }
 
-  $('cav-annuler').onclick = () => {
-    currentCavaliere = null;
-    $('form-cavaliere').reset();
-    $('cav-submit-btn').textContent = 'Ajouter';
-    $('cav-annuler').style.display = 'none';
-  };
+  $('cav-annuler')?.addEventListener('click', () => { currentCavaliere = null; $('form-cavaliere')?.reset(); if ($('cav-submit-btn')) $('cav-submit-btn').textContent = 'Ajouter'; $('cav-annuler').style.display = 'none'; });
 
   async function deleteRider(id) {
-    if (confirm('Supprimer ce/cette cavalier(e) ?')) {
-      await db.from('cavalieres').delete().eq('id', id);
-      loadRiders();
-    }
+    if (!confirm('Supprimer ce/cette cavalier(e) ?')) return;
+    const { error } = await db.from('cavalieres').delete().eq('id', id);
+    if (error) return alert(error.message);
+    loadRiders();
   }
 
-  $('form-cavaliere').onsubmit = async e => {
+  $('form-cavaliere')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const p = {
-      prenom: $('cav-prenom').value || null,
-      nom: $('cav-nom').value || null,
-      ecurie_id: $('cav-ecurie').value || null,
-      nom_cheval: $('cav-cheval').value || null,
-      telephone: $('cav-tel').value || null,
-      email: $('cav-email').value || null,
-      ambassadeur: $('cav-ambassadeur').checked
-    };
-    const q = currentCavaliere
-      ? db.from('cavalieres').update(p).eq('id', currentCavaliere)
-      : db.from('cavalieres').insert(p);
-    const r = await q;
-    if (r.error) return alert(r.error.message);
-    $('cav-annuler').click();
+    const p = { prenom: $('cav-prenom')?.value || null, nom: $('cav-nom')?.value || null, ecurie_id: $('cav-ecurie')?.value || null, nom_cheval: $('cav-cheval')?.value || null, telephone: $('cav-tel')?.value || null, email: $('cav-email')?.value || null, ambassadeur: $('cav-ambassadeur')?.checked || false };
+    const result = currentCavaliere ? await db.from('cavalieres').update(p).eq('id', currentCavaliere) : await db.from('cavalieres').insert(p);
+    if (result.error) return alert(result.error.message);
+    $('cav-annuler')?.click();
     loadRiders();
-  };
-
-  $('filtre-cavalieres').oninput = loadRiders;
+  });
+  $('filtre-cavalieres')?.addEventListener('input', loadRiders);
 
   async function loadShootings() {
-    const { data, error } = await db.from('concours').select('*, ecuries(nom), cavalieres(nom, prenom)').order('date_debut');
+    const { data, error } = await db.from('concours').select('*,ecuries(nom),cavalieres(nom,prenom)').order('date_debut');
     if (error) return console.error(error);
-    shootings = data;
-    $('table-shootings').querySelector('tbody').innerHTML = shootings
-      .map(s => `
-        <tr data-shooting-id="${s.id}">
-          <td>${esc(s.nom)}</td>
-          <td>${s.type_shooting === 'concours' ? 'Concours' : 'Shooting perso.'}</td>
-          <td>${esc(s.ecuries?.nom || s.lieu || '-')}</td>
-          <td>${s.cavalieres ? esc(s.cavalieres.prenom) + ' ' + esc(s.cavalieres.nom) : '-'}</td>
-          <td>${s.date_debut}${s.date_fin && s.date_fin !== s.date_debut ? ' -> ' + s.date_fin : ''}</td>
-          <td>
-            <button data-edit="${s.id}">Modifier</button>
-            <button class="btn-danger" data-del="${s.id}">Supprimer</button>
-          </td>
-        </tr>
-      `)
-      .join('');
-    $('table-shootings').querySelectorAll('[data-edit]').forEach(b => {
-      b.onclick = () => editShooting(b.dataset.edit);
-    });
-    $('table-shootings').querySelectorAll('[data-del]').forEach(b => {
-      b.onclick = () => deleteShooting(b.dataset.del);
-    });
+    shootings = data || [];
+    if ($('table-shootings')) $('table-shootings').querySelector('tbody').innerHTML = shootings.map(s => `<tr data-shooting-id="${s.id}"><td>${safe(s.nom)}</td><td>${s.type_shooting === 'concours' ? 'Concours' : 'Shooting perso.'}</td><td>${safe(s.ecuries?.nom || s.lieu || '-')}</td><td>${s.cavalieres ? `${safe(s.cavalieres.prenom)} ${safe(s.cavalieres.nom)}` : '-'}</td><td>${safe(s.date_debut)}${s.date_fin && s.date_fin !== s.date_debut ? ` -> ${safe(s.date_fin)}` : ''}</td><td><button data-edit-shooting="${s.id}">Modifier</button><button class="btn-danger" data-delete-shooting="${s.id}">Supprimer</button></td></tr>`).join('');
+    document.querySelectorAll('[data-edit-shooting]').forEach(b => b.onclick = () => editShooting(b.dataset.editShooting));
+    document.querySelectorAll('[data-delete-shooting]').forEach(b => b.onclick = () => deleteShooting(b.dataset.deleteShooting));
     refreshBell();
     renderCalendar();
   }
 
   function editShooting(id) {
-    const s = shootings.find(x => x.id == id);
+    const s = shootings.find(x => String(x.id) === String(id));
     if (!s) return;
     currentShooting = id;
-    [
-      ['sh-nom', s.nom],
-      ['sh-type', s.type_shooting || 'concours'],
-      ['sh-ecurie', s.ecurie_id],
-      ['sh-cavaliere', s.cavaliere_id || ''],
-      ['sh-debut', s.date_debut],
-      ['sh-fin', s.date_fin],
-      ['sh-heure-debut', s.heure_debut],
-      ['sh-heure-fin', s.heure_fin],
-      ['sh-distance', s.distance_km],
-      ['sh-notes', s.notes]
-    ].forEach(([i, v]) => $(i).value = v || '');
-    $('sh-rappel').checked = s.rappel_actif !== false;
-    $('sh-submit-btn').textContent = 'Enregistrer';
-    $('sh-annuler').style.display = 'inline-block';
+    [['sh-nom', s.nom], ['sh-type', s.type_shooting || 'concours'], ['sh-ecurie', s.ecurie_id], ['sh-cavaliere', s.cavaliere_id || ''], ['sh-debut', s.date_debut], ['sh-fin', s.date_fin], ['sh-heure-debut', s.heure_debut], ['sh-heure-fin', s.heure_fin], ['sh-distance', s.distance_km], ['sh-notes', s.notes]].forEach(([key, value]) => { if ($(key)) $(key).value = value || ''; });
+    if ($('sh-rappel')) $('sh-rappel').checked = s.rappel_actif !== false;
+    if ($('sh-submit-btn')) $('sh-submit-btn').textContent = 'Enregistrer';
+    if ($('sh-annuler')) $('sh-annuler').style.display = 'inline-block';
     openTab('shootings');
   }
 
-  $('sh-annuler').onclick = () => {
-    currentShooting = null;
-    $('form-shooting').reset();
-    $('sh-submit-btn').textContent = 'Ajouter';
-    $('sh-annuler').style.display = 'none';
-  };
+  $('sh-annuler')?.addEventListener('click', () => { currentShooting = null; $('form-shooting')?.reset(); if ($('sh-submit-btn')) $('sh-submit-btn').textContent = 'Ajouter'; $('sh-annuler').style.display = 'none'; });
 
   async function deleteShooting(id) {
-    if (confirm('Supprimer ce shooting ?')) {
-      await db.from('concours').delete().eq('id', id);
-      loadShootings();
-    }
+    if (!confirm('Supprimer ce shooting ?')) return;
+    const { error } = await db.from('concours').delete().eq('id', id);
+    if (error) return alert(error.message);
+    loadShootings();
   }
 
-  $('form-shooting').onsubmit = async e => {
+  $('form-shooting')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const ec = ecuries.find(x => String(x.id) === String($('sh-ecurie').value));
-    const p = {
-      nom: $('sh-nom').value,
-      type_shooting: $('sh-type').value,
-      ecurie_id: $('sh-ecurie').value || null,
-      cavaliere_id: $('sh-cavaliere').value || null,
-      date_debut: $('sh-debut').value,
-      date_fin: $('sh-fin').value || $('sh-debut').value,
-      heure_debut: $('sh-heure-debut').value || null,
-      heure_fin: $('sh-heure-fin').value || null,
-      distance_km: $('sh-distance').value || null,
-      notes: $('sh-notes').value,
-      rappel_actif: $('sh-rappel').checked,
-      lieu: ec?.nom || null
-    };
-    const q = currentShooting
-      ? db.from('concours').update(p).eq('id', currentShooting)
-      : db.from('concours').insert(p);
-    const r = await q;
-    if (r.error) return alert(r.error.message);
-    $('sh-annuler').click();
+    const ec = ecuries.find(x => String(x.id) === String($('sh-ecurie')?.value));
+    const p = { nom: $('sh-nom').value, type_shooting: $('sh-type').value, ecurie_id: $('sh-ecurie')?.value || null, cavaliere_id: $('sh-cavaliere')?.value || null, date_debut: $('sh-debut').value, date_fin: $('sh-fin')?.value || $('sh-debut').value, heure_debut: $('sh-heure-debut')?.value || null, heure_fin: $('sh-heure-fin')?.value || null, distance_km: $('sh-distance')?.value || null, notes: $('sh-notes')?.value || null, rappel_actif: $('sh-rappel')?.checked ?? true, lieu: ec?.nom || null };
+    const result = currentShooting ? await db.from('concours').update(p).eq('id', currentShooting) : await db.from('concours').insert(p);
+    if (result.error) return alert(result.error.message);
+    $('sh-annuler')?.click();
     loadShootings();
-  };
+  });
 
   async function loadServices() {
     const { data, error } = await db.from('prestations').select('*').eq('actif', true).order('prix');
     if (error) return console.error(error);
-    $('table-prestations').querySelector('tbody').innerHTML = data
-      .map(x => `
-        <tr>
-          <td>${esc(x.libelle)}</td>
-          <td>${esc(x.type)}</td>
-          <td>${x.quantite || '-'}</td>
-          <td>${euro(x.prix)}</td>
-          <td><button class="btn-danger" data-del="${x.id}">Supprimer</button></td>
-        </tr>
-      `)
-      .join('');
-    document.querySelectorAll('.ligne-prestation').forEach(s => {
-      const v = s.value;
-      s.innerHTML = '<option value="">-- Prestation --</option>' + data
-        .map(x => `<option value="${x.id}" data-prix="${x.prix}">${esc(x.libelle)} - ${euro(x.prix)}</option>`)
-        .join('');
-      s.value = v;
-    });
+    const services = data || [];
+    if ($('table-prestations')) $('table-prestations').querySelector('tbody').innerHTML = services.map(s => `<tr><td>${safe(s.libelle)}</td><td>${safe(s.type)}</td><td>${safe(s.quantite || '-')}</td><td>${euro(s.prix)}</td><td><button class="btn-danger" data-delete-service="${s.id}">Supprimer</button></td></tr>`).join('');
+    document.querySelectorAll('[data-delete-service]').forEach(b => b.onclick = async () => { if (!confirm('Supprimer cette prestation ?')) return; const { error } = await db.from('prestations').update({ actif: false }).eq('id', b.dataset.deleteService); if (error) return alert(error.message); loadServices(); });
+    document.querySelectorAll('.ligne-prestation').forEach(select => { const value = select.value; select.innerHTML = '<option value="">-- Prestation --</option>' + services.map(s => `<option value="${s.id}" data-prix="${s.prix}">${safe(s.libelle)} - ${euro(s.prix)}</option>`).join(''); select.value = value; });
   }
 
-  $('form-prestation').onsubmit = async e => {
+  $('form-prestation')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const r = await db.from('prestations').insert({
-      libelle: $('pr-libelle').value,
-      type: $('pr-type').value,
-      quantite: $('pr-quantite').value || null,
-      prix: $('pr-prix').value
-    });
-    if (r.error) return alert(r.error.message);
+    const { error } = await db.from('prestations').insert({ libelle: $('pr-libelle').value, type: $('pr-type').value, quantite: $('pr-quantite')?.value || null, prix: $('pr-prix').value });
+    if (error) return alert(error.message);
     e.target.reset();
     loadServices();
-  };
+  });
 
   function calculate() {
-    let t = 0;
-    document.querySelectorAll('.ligne-facture').forEach(l => {
-      const p = l.querySelector('.ligne-prestation').selectedOptions[0]?.dataset.prix || 0;
-      const q = l.querySelector('.ligne-qte').value || 1;
-      const s = p * q;
-      l.querySelector('.ligne-total').textContent = euro(s);
-      t += s;
+    let total = 0;
+    document.querySelectorAll('.ligne-facture').forEach(line => {
+      const price = Number(line.querySelector('.ligne-prestation')?.selectedOptions[0]?.dataset.prix || 0);
+      const quantity = Number(line.querySelector('.ligne-qte')?.value || 1);
+      const subtotal = price * quantity;
+      line.querySelector('.ligne-total').textContent = euro(subtotal);
+      total += subtotal;
     });
-    const k = $('fa-deplacement').checked ? $('fa-km').value || 0 : 0;
-    const d = k * settings.taux_km;
-    $('fa-montant-deplacement').textContent = euro(d);
-    $('fa-total').textContent = euro(t + d);
+    const km = $('fa-deplacement')?.checked ? Number($('fa-km')?.value || 0) : 0;
+    const travel = km * Number(settings.taux_km || 0);
+    if ($('fa-montant-deplacement')) $('fa-montant-deplacement').textContent = euro(travel);
+    if ($('fa-total')) $('fa-total').textContent = euro(total + travel);
   }
-
-  $('ajouter-ligne').onclick = () => {
-    const d = document.createElement('div');
-    d.className = 'ligne-facture';
-    d.innerHTML = `
-      <select class="ligne-prestation"></select>
-      <input class="ligne-qte" type="number" value="1" min="1">
-      <span class="ligne-total">0.00 EUR</span>
-      <button type="button" class="btn-danger">-</button>
-    `;
-    d.querySelector('button').onclick = () => {
-      d.remove();
-      calculate();
-    };
-    $('lignes-container').appendChild(d);
-    loadServices().then(bindLines);
-  };
 
   function bindLines() {
-    document.querySelectorAll('.ligne-prestation, .ligne-qte').forEach(x => {
-      x.onchange = calculate;
-    });
+    document.querySelectorAll('.ligne-prestation, .ligne-qte').forEach(x => { x.onchange = calculate; x.oninput = calculate; });
   }
 
-  $('fa-deplacement').onchange = () => {
-    $('fa-km').disabled = !$('fa-deplacement').checked;
-    calculate();
-  };
+  $('ajouter-ligne')?.addEventListener('click', () => {
+    const line = document.createElement('div');
+    line.className = 'ligne-facture';
+    line.innerHTML = '<select class="ligne-prestation"></select><input class="ligne-qte" type="number" value="1" min="1"><span class="ligne-total">0.00 EUR</span><button type="button" class="btn-danger">-</button>';
+    line.querySelector('button').onclick = () => { line.remove(); calculate(); };
+    $('lignes-container')?.appendChild(line);
+    loadServices().then(bindLines);
+  });
 
-  $('fa-km').oninput = calculate;
+  $('fa-deplacement')?.addEventListener('change', () => { if ($('fa-km')) $('fa-km').disabled = !$('fa-deplacement').checked; calculate(); });
+  $('fa-km')?.addEventListener('input', calculate);
+  $('fa-shooting')?.addEventListener('change', () => { const km = $('fa-shooting').selectedOptions[0]?.dataset.distance || 0; if (km) { $('fa-km').value = km; $('fa-deplacement').checked = true; $('fa-km').disabled = false; calculate(); } });
 
-  $('fa-shooting').onchange = () => {
-    const k = $('fa-shooting').selectedOptions[0]?.dataset.distance || 0;
-    if (k) {
-      $('fa-km').value = k;
-      $('fa-deplacement').checked = true;
-      $('fa-km').disabled = false;
-      calculate();
-    }
-  };
-
-  $('form-facture').onsubmit = async e => {
+  $('form-facture')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const id = $('fa-cavaliere').value;
-    if (!id) return alert('Selectionne un(e) cavalier(e).');
+    const riderId = $('fa-cavaliere')?.value;
+    if (!riderId) return alert('Selectionne un(e) cavalier(e).');
     const lines = [];
-    document.querySelectorAll('.ligne-facture').forEach(l => {
-      const o = l.querySelector('.ligne-prestation').selectedOptions[0];
-      if (o?.value) {
-        const q = l.querySelector('.ligne-qte').value || 1;
-        const p = o.dataset.prix;
-        lines.push({
-          prestation_id: o.value,
-          libelle: o.textContent.split(' - ')[0],
-          quantite: q,
-          prix_unitaire: p,
-          sous_total: p * q
-        });
+    document.querySelectorAll('.ligne-facture').forEach(line => {
+      const option = line.querySelector('.ligne-prestation')?.selectedOptions[0];
+      if (option?.value) {
+        const quantity = Number(line.querySelector('.ligne-qte').value || 1);
+        const price = Number(option.dataset.prix || 0);
+        lines.push({ prestation_id: option.value, libelle: option.textContent.split(' - ')[0], quantite: quantity, prix_unitaire: price, sous_total: price * quantity });
       }
     });
     if (!lines.length) return alert('Ajoute une prestation.');
-    const k = $('fa-deplacement').checked ? $('fa-km').value || 0 : 0;
-    const d = k * settings.taux_km;
-    const total = lines.reduce((s, x) => s + Number(x.sous_total), 0) + d;
-    const num = settings.prefixe_facture + String(settings.prochain_numero_facture).padStart(3, '0');
-    const r = await db.from('factures').insert({
-      numero: num,
-      date_facture: $('fa-date').value,
-      cavaliere_id: id,
-      concours_id: $('fa-shooting').value || null,
-      lieu: $('fa-lieu').value,
-      deplacement_km: k,
-      montant_deplacement: d,
-      montant_total: total,
-      mention_tva: settings.mention_tva,
-      type_paiement: $('fa-paiement').value || null
-    }).select().single();
-    if (r.error) return alert(r.error.message);
-    await db.from('lignes_facture').insert(lines.map(x => ({ ...x, facture_id: r.data.id })));
-    await db.from('reglages').update({ prochain_numero_facture: settings.prochain_numero_facture + 1 }).eq('id', settings.id);
-    settings.prochain_numero_facture++;
+    const km = $('fa-deplacement')?.checked ? Number($('fa-km')?.value || 0) : 0;
+    const travel = km * Number(settings.taux_km || 0);
+    const total = lines.reduce((sum, line) => sum + Number(line.sous_total), 0) + travel;
+    const number = `${settings.prefixe_facture}${String(settings.prochain_numero_facture).padStart(3, '0')}`;
+    const invoice = await db.from('factures').insert({ numero: number, date_facture: $('fa-date').value, cavaliere_id: riderId, concours_id: $('fa-shooting')?.value || null, lieu: $('fa-lieu')?.value || null, deplacement_km: km, montant_deplacement: travel, montant_total: total, mention_tva: settings.mention_tva, type_paiement: $('fa-paiement')?.value || null }).select().single();
+    if (invoice.error) return alert(invoice.error.message);
+    const details = await db.from('lignes_facture').insert(lines.map(line => ({ ...line, facture_id: invoice.data.id })));
+    if (details.error) return alert(details.error.message);
+    await db.from('reglages').update({ prochain_numero_facture: Number(settings.prochain_numero_facture) + 1 }).eq('id', settings.id);
+    settings.prochain_numero_facture = Number(settings.prochain_numero_facture) + 1;
     e.target.reset();
-    $('fa-date').value = today();
-    $('fa-km').disabled = true;
+    if ($('fa-date')) $('fa-date').value = dateNow();
+    if ($('fa-km')) $('fa-km').disabled = true;
     calculate();
     loadInvoices();
     loadDashboard();
-  };
-
-  async function loadInvoices() {
-    let q = db.from('factures').select('*, cavalieres(nom, prenom), lignes_facture(libelle, quantite, sous_total)').order('date_facture', { ascending: false });
-    const d1 = $('filtre-date-debut').value;
-    const d2 = $('filtre-date-fin').value;
-    const s = $('filtre-statut').value;
-    const p = $('filtre-paiement').value;
-    if (d1) q = q.gte('date_facture', d1);
-    if (d2) q = q.lte('date_facture', d2);
-    if (s) q = q.eq('statut_paiement', s);
-    if (p) q = q.eq('type_paiement', p);
-    const r = await q;
-    if (r.error) return console.error(r.error);
-    const data = r.data || [];
-    const total = data.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-    $('factures-total-global').textContent = euro(total);
-    $('factures-total-periode').textContent = euro(total);
-    $('factures-total-periode-label').textContent = d1 || d2 ? 'Total periode' : 'Total filtre actif';
-    $('table-factures').querySelector('tbody').innerHTML = data.length
-      ? data
-        .map(f => {
-          const l = f.lignes_facture || [];
-          const resume = l.length
-            ? l.map(x => `${x.libelle} (x${x.quantite})`).join(', ')
-            : 'Aucune prestation';
-          const tooltip = l
-            .map(x => `<div>${esc(x.libelle)} x ${x.quantite} - ${euro(x.sous_total)}</div>`)
-            .join('');
-          return `
-            <tr data-invoice-id="${f.id}">
-              <td>${esc(f.numero)}</td>
-              <td>${f.date_facture}</td>
-              <td>${esc(f.cavalieres?.prenom)} ${esc(f.cavalieres?.nom)}</td>
-              <td>
-                <span class="presta-resume">
-                  ${esc(resume)}${l.length > 1 ? ' (plus)' : ''}
-                  <span class="presta-tooltip"><b>Prestations</b>${tooltip}</span>
-                </span>
-              </td>
-              <td>${euro(f.montant_total)}</td>
-              <td>
-                <select data-pay="${f.id}">
-                  ${(settings.types_paiement || []).map(x => `
-                    <option value="${x}" ${f.type_paiement === x ? 'selected' : ''}>
-                      ${paymentLabel(x)}
-                    </option>
-                  `).join('')}
-                </select>
-              </td>
-              <td>
-                <select data-status="${f.id}">
-                  <option value="en_attente" ${f.statut_paiement === 'en_attente' ? 'selected' : ''}>En attente</option>
-                  <option value="payee" ${f.statut_paiement === 'payee' ? 'selected' : ''}>Payee</option>
-                  <option value="en_retard" ${f.statut_paiement === 'en_retard' ? 'selected' : ''}>En retard</option>
-                </select>
-              </td>
-              <td>
-                <button class="btn-muted" data-view="${f.id}">Voir</button>
-                <button class="btn-danger" data-del="${f.id}">Supprimer</button>
-              </td>
-            </tr>
-          `;
-        })
-        .join('')
-      : '<tr><td colspan="8">Aucune facture</td></tr>';
-
-    document.querySelectorAll('[data-status]').forEach(x => {
-      x.onchange = () => {
-        db.from('factures').update({ statut_paiement: x.value }).eq('id', x.dataset.status).then(loadInvoices);
-      };
-    });
-    document.querySelectorAll('[data-pay]').forEach(x => {
-      x.onchange = () => {
-        db.from('factures').update({ type_paiement: x.value }).eq('id', x.dataset.pay).then(loadInvoices);
-      };
-    });
-    document.querySelectorAll('[data-del]').forEach(x => {
-      x.onclick = async () => {
-        if (confirm('Supprimer cette facture ?')) {
-          await db.from('factures').delete().eq('id', x.dataset.del);
-          loadInvoices();
-          loadDashboard();
-        }
-      };
-    });
-    document.querySelectorAll('[data-view]').forEach(x => {
-      x.onclick = () => {
-        const f = data.find(z => z.id == x.dataset.view);
-        const l = f?.lignes_facture || [];
-        if (!f) return;
-        $('facture-modal-titre').textContent = `Facture ${f.numero}`;
-        $('facture-modal-contenu').innerHTML = `
-          <div class="invoice-detail-list">
-            <div class="invoice-detail-line"><span>Date</span><strong>${f.date_facture}</strong></div>
-            <div class="invoice-detail-line"><span>Cavalier(e)</span><strong>${esc(f.cavalieres?.prenom)} ${esc(f.cavalieres?.nom)}</strong></div>
-            <div class="invoice-detail-line"><span>Paiement</span><strong>${paymentLabel(f.type_paiement) || '-'}</strong></div>
-            ${l.map(x => `
-              <div class="invoice-detail-line">
-                <span>${esc(x.libelle)} x ${x.quantite}</span>
-                <span>${euro(x.sous_total)}</span>
-              </div>
-            `).join('')}
-            <div class="invoice-detail-total"><strong>Total : ${euro(f.montant_total)}</strong></div>
-          </div>
-        `;
-        $('modal-facture').classList.add('visible');
-      };
-    });
-  }
-
-  ['filtre-date-debut', 'filtre-date-fin', 'filtre-statut', 'filtre-paiement'].forEach(id => {
-    $(id).onchange = loadInvoices;
+    refreshUnpaid();
   });
 
-  $('reinit-filtre-factures').onclick = () => {
-    ['filtre-date-debut', 'filtre-date-fin', 'filtre-statut', 'filtre-paiement'].forEach(id => $(id).value = '');
-    loadInvoices();
-  };
+  async function loadInvoices() {
+    let q = db.from('factures').select('*,cavalieres(nom,prenom),lignes_facture(libelle,quantite,sous_total)').order('date_facture', { ascending: false });
+    const d1 = $('filtre-date-debut')?.value;
+    const d2 = $('filtre-date-fin')?.value;
+    const status = $('filtre-statut')?.value;
+    const payment = $('filtre-paiement')?.value;
+    if (d1) q = q.gte('date_facture', d1);
+    if (d2) q = q.lte('date_facture', d2);
+    if (status) q = q.eq('statut_paiement', status);
+    if (payment) q = q.eq('type_paiement', payment);
+    const { data, error } = await q;
+    if (error) return console.error(error);
+    const invoices = data || [];
+    const total = invoices.reduce((sum, invoice) => sum + Number(invoice.montant_total || 0), 0);
+    if ($('factures-total-global')) $('factures-total-global').textContent = euro(total);
+    if ($('factures-total-periode')) $('factures-total-periode').textContent = euro(total);
+    if ($('factures-total-periode-label')) $('factures-total-periode-label').textContent = d1 || d2 ? 'Total periode' : 'Total filtre actif';
+    if ($('table-factures')) $('table-factures').querySelector('tbody').innerHTML = invoices.length ? invoices.map(invoice => {
+      const lines = invoice.lignes_facture || [];
+      const resume = lines.length ? lines.map(l => `${l.libelle} (x${l.quantite})`).join(', ') : 'Aucune prestation';
+      const tooltip = lines.map(l => `<div>${safe(l.libelle)} x ${l.quantite} - ${euro(l.sous_total)}</div>`).join('');
+      return `<tr data-invoice-id="${invoice.id}"><td>${safe(invoice.numero)}</td><td>${safe(invoice.date_facture)}</td><td>${safe(invoice.cavalieres?.prenom)} ${safe(invoice.cavalieres?.nom)}</td><td><span class="presta-resume">${safe(resume)}${lines.length > 1 ? ' (plus)' : ''}<span class="presta-tooltip"><b>Prestations</b>${tooltip}</span></span></td><td>${euro(invoice.montant_total)}</td><td><select data-pay="${invoice.id}"><option value="">-</option>${(settings.types_paiement || []).map(x => `<option value="${x}" ${invoice.type_paiement === x ? 'selected' : ''}>${paymentLabel(x)}</option>`).join('')}</select></td><td><select data-status="${invoice.id}"><option value="en_attente" ${invoice.statut_paiement === 'en_attente' ? 'selected' : ''}>En attente</option><option value="payee" ${invoice.statut_paiement === 'payee' ? 'selected' : ''}>Payee</option><option value="en_retard" ${invoice.statut_paiement === 'en_retard' ? 'selected' : ''}>En retard</option></select></td><td><button class="btn-muted" data-view-invoice="${invoice.id}">Voir</button><button class="btn-danger" data-delete-invoice="${invoice.id}">Supprimer</button></td></tr>`;
+    }).join('') : '<tr><td colspan="8">Aucune facture</td></tr>';
+    document.querySelectorAll('[data-status]').forEach(x => x.onchange = async () => { const { error } = await db.from('factures').update({ statut_paiement: x.value }).eq('id', x.dataset.status); if (error) return alert(error.message); loadInvoices(); loadDashboard(); refreshUnpaid(); });
+    document.querySelectorAll('[data-pay]').forEach(x => x.onchange = async () => { const { error } = await db.from('factures').update({ type_paiement: x.value || null }).eq('id', x.dataset.pay); if (error) return alert(error.message); loadInvoices(); });
+    document.querySelectorAll('[data-delete-invoice]').forEach(x => x.onclick = async () => { if (!confirm('Supprimer cette facture ?')) return; const { error } = await db.from('factures').delete().eq('id', x.dataset.deleteInvoice); if (error) return alert(error.message); loadInvoices(); loadDashboard(); refreshUnpaid(); });
+    document.querySelectorAll('[data-view-invoice]').forEach(x => x.onclick = () => {
+      const invoice = invoices.find(i => String(i.id) === String(x.dataset.viewInvoice));
+      if (!invoice) return;
+      const lines = invoice.lignes_facture || [];
+      if ($('facture-modal-titre')) $('facture-modal-titre').textContent = `Facture ${invoice.numero}`;
+      if ($('facture-modal-contenu')) $('facture-modal-contenu').innerHTML = `<div class="invoice-detail-list"><div class="invoice-detail-line"><span>Date</span><strong>${safe(invoice.date_facture)}</strong></div><div class="invoice-detail-line"><span>Cavalier(e)</span><strong>${safe(invoice.cavalieres?.prenom)} ${safe(invoice.cavalieres?.nom)}</strong></div><div class="invoice-detail-line"><span>Paiement</span><strong>${paymentLabel(invoice.type_paiement) || '-'}</strong></div>${lines.map(l => `<div class="invoice-detail-line"><span>${safe(l.libelle)} x ${l.quantite}</span><span>${euro(l.sous_total)}</span></div>`).join('')}<div class="invoice-detail-total"><strong>Total : ${euro(invoice.montant_total)}</strong></div></div>`;
+      $('modal-facture')?.classList.add('visible');
+    });
+  }
+
+  ['filtre-date-debut', 'filtre-date-fin', 'filtre-statut', 'filtre-paiement'].forEach(id => $(id)?.addEventListener('change', loadInvoices));
+  $('reinit-filtre-factures')?.addEventListener('click', () => { ['filtre-date-debut', 'filtre-date-fin', 'filtre-statut', 'filtre-paiement'].forEach(id => { if ($(id)) $(id).value = ''; }); loadInvoices(); });
 
   function renderCalendar() {
-    const y = calCursor.getFullYear();
-    const m = calCursor.getMonth();
-    $('calendar-title').textContent = calCursor.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    $('calendar-head').innerHTML = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(x => `<div>${x}</div>`).join('');
-    const first = new Date(y, m, 1);
-    const off = (first.getDay() + 6) % 7;
-    const last = new Date(y, m + 1, 0).getDate();
-    const now = today();
-    let cells = [];
-    for (let i = 0; i < off; i++) cells.push(null);
-    for (let d = 1; d <= last; d++) cells.push(new Date(y, m, d));
+    if (!$('calendar-grid')) return;
+    const year = calCursor.getFullYear();
+    const month = calCursor.getMonth();
+    if ($('calendar-title')) $('calendar-title').textContent = calCursor.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    if ($('calendar-head')) $('calendar-head').innerHTML = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => `<div>${d}</div>`).join('');
+    const first = new Date(year, month, 1);
+    const offset = (first.getDay() + 6) % 7;
+    const last = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push(null);
+    for (let d = 1; d <= last; d++) cells.push(new Date(year, month, d));
     while (cells.length % 7) cells.push(null);
-
-    $('calendar-grid').innerHTML = cells
-      .map(dt => {
-        if (!dt) return '<div class="fc-day out"></div>';
-        const iso = dt.toISOString().slice(0, 10);
-        const ev = shootings.filter(s => iso >= s.date_debut && iso <= (s.date_fin || s.date_debut));
-        return `
-          <div class="fc-day ${iso === now ? 'today' : ''}" data-date="${iso}">
-            <span class="fc-day-number">${dt.getDate()}</span>
-            ${ev.map(e => {
-              const lieu = e.ecuries?.nom || e.lieu || 'Lieu inconnu';
-              const c = e.cavalieres ? `${e.cavalieres.prenom} ${e.cavalieres.nom}` : '-';
-              const details = e.type_shooting === 'concours'
-                ? `<b>${esc(e.nom)}</b><br><small>Lieu : ${esc(lieu)}</small>`
-                : `<b>${esc(e.nom)}</b><br><small>Lieu : ${esc(lieu)}</small><br><small>Cavalier(e) : ${esc(c)}</small>`;
-              return `
-                <span class="fc-event ${e.type_shooting}" data-id="${e.id}">
-                  ${esc(e.nom)}
-                  <span class="fc-event-tooltip">${details}</span>
-                </span>
-              `;
-            }).join('')}
-          </div>
-        `;
-      })
-      .join('');
-
-    document.querySelectorAll('.fc-event').forEach(e => {
-      e.onclick = x => {
-        x.stopPropagation();
-        editShooting(e.dataset.id);
-      };
-    });
-
-    document.querySelectorAll('.fc-day[data-date]').forEach(d => {
-      d.onclick = () => {
-        $('sh-debut').value = d.dataset.date;
-        $('sh-fin').value = d.dataset.date;
-        openTab('shootings');
-      };
-    });
+    const showConcours = $('filter-concours')?.checked !== false;
+    const showCustom = $('filter-personnalise')?.checked !== false;
+    $('calendar-grid').innerHTML = cells.map(date => {
+      if (!date) return '<div class="fc-day out"></div>';
+      const iso = date.toISOString().slice(0, 10);
+      const events = shootings.filter(s => iso >= s.date_debut && iso <= (s.date_fin || s.date_debut) && (s.type_shooting === 'concours' ? showConcours : showCustom));
+      return `<div class="fc-day ${iso === dateNow() ? 'today' : ''}" data-date="${iso}"><span class="fc-day-number">${date.getDate()}</span>${events.map(e => { const place = e.ecuries?.nom || e.lieu || 'Lieu inconnu'; const rider = e.cavalieres ? `${e.cavalieres.prenom} ${e.cavalieres.nom}` : '-'; const detail = e.type_shooting === 'concours' ? `<b>${safe(e.nom)}</b><br><small>Lieu : ${safe(place)}</small>` : `<b>${safe(e.nom)}</b><br><small>Lieu : ${safe(place)}</small><br><small>Cavalier(e) : ${safe(rider)}</small>`; return `<span class="fc-event ${safe(e.type_shooting)}" data-event-id="${e.id}">${safe(e.nom)}<span class="fc-event-tooltip">${detail}</span></span>`; }).join('')}</div>`;
+    }).join('');
+    document.querySelectorAll('[data-event-id]').forEach(e => e.onclick = event => { event.stopPropagation(); editShooting(e.dataset.eventId); });
+    document.querySelectorAll('.fc-day[data-date]').forEach(day => day.onclick = () => { if ($('sh-debut')) $('sh-debut').value = day.dataset.date; if ($('sh-fin')) $('sh-fin').value = day.dataset.date; openTab('shootings'); });
   }
 
-  $('calendar-prev').onclick = () => {
-    calCursor.setMonth(calCursor.getMonth() - 1);
-    renderCalendar();
-  };
-  $('calendar-next').onclick = () => {
-    calCursor.setMonth(calCursor.getMonth() + 1);
-    renderCalendar();
-  };
-  $('calendar-today').onclick = () => {
-    calCursor = new Date();
-    renderCalendar();
-  };
-  $('filter-concours').onchange = renderCalendar;
-  $('filter-personnalise').onchange = renderCalendar;
-  $('calendar-create').onclick = () => {
-    $('sh-debut').value = today();
-    $('sh-fin').value = today();
-    openTab('shootings');
-  };
+  $('calendar-prev')?.addEventListener('click', () => { calCursor.setMonth(calCursor.getMonth() - 1); renderCalendar(); });
+  $('calendar-next')?.addEventListener('click', () => { calCursor.setMonth(calCursor.getMonth() + 1); renderCalendar(); });
+  $('calendar-today')?.addEventListener('click', () => { calCursor = new Date(); renderCalendar(); });
+  $('filter-concours')?.addEventListener('change', renderCalendar);
+  $('filter-personnalise')?.addEventListener('change', renderCalendar);
+  $('calendar-create')?.addEventListener('click', () => { if ($('sh-debut')) $('sh-debut').value = dateNow(); if ($('sh-fin')) $('sh-fin').value = dateNow(); openTab('shootings'); });
 
   function reminderItems() {
-    const t = new Date(today());
-    const a = [];
-    (shootings || []).forEach(s => {
-      if (s.rappel_actif === false) return;
-      const d = Math.ceil((new Date(s.date_debut) - t) / 86400000);
-      if (d >= 0 && (settings.rappels_jours || [7]).some(x => x >= d)) {
-        a.push({
-          kind: 'shooting',
-          id: s.id,
-          s,
-          d,
-          label: d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `Dans ${d} jours`
-        });
-      }
-    });
-    return a.sort((x, y) => x.d - y.d);
+    const now = new Date(`${dateNow()}T00:00:00`);
+    return shootings.filter(s => s.rappel_actif !== false).map(s => {
+      const eventDate = new Date(`${s.date_debut}T00:00:00`);
+      const days = Math.ceil((eventDate - now) / 86400000);
+      return { id: s.id, shooting: s, days, label: days === 0 ? "Aujourd'hui" : days === 1 ? 'Demain' : `Dans ${days} jours` };
+    }).filter(item => item.days >= 0 && (settings.rappels_jours || [7]).some(days => days >= item.days)).sort((a, b) => a.days - b.days);
   }
 
-  function unpaid() {
-    return unpaidItems;
-  }
-
-  function unpaidHTML(f) {
-    return `
-      <div class="bell-item unpaid-item" data-invoice-id="${f.id}">
-        <span class="bell-icon-dot" style="background:var(--warning)"><i class="bx bx-wallet"></i></span>
-        <div class="bell-item-body">
-          <span class="bell-when">Paiement attendu</span>
-          <strong>${esc(f.numero)}</strong>
-          <span class="bell-type">${esc(f.cavalieres?.prenom)} ${esc(f.cavalieres?.nom)} - ${euro(f.montant_total)}</span>
-        </div>
-      </div>
-    `;
+  function bellItemHTML(item) {
+    const s = item.shooting;
+    return `<div class="bell-item" data-bell-shooting-id="${item.id}"><span class="bell-icon-dot ${safe(s.type_shooting)}"><i class="bx ${s.type_shooting === 'concours' ? 'bx-trophy' : 'bx-camera-movie'}"></i></span><div class="bell-item-body"><span class="bell-when">${item.label}</span><strong>${safe(s.nom)}</strong><span class="bell-type">${s.type_shooting === 'concours' ? 'Concours' : 'Shooting personnalise'} - ${safe(s.date_debut)}</span></div></div>`;
   }
 
   function refreshBell() {
-    bellItems = reminderItems();
-    $('bell-badge').textContent = bellItems.length;
-    $('bell-badge').classList.toggle('hidden', !bellItems.length);
-    $('bell-count-pill').textContent = `${bellItems.length} notification${bellItems.length === 1 ? 's' : ''}`;
-    const n = bellItems.slice(0, settings.rappel_affichage_limite || 3);
-    $('bell-list').innerHTML = n.length
-      ? n.map(x => `
-          <div class="bell-item" data-shooting-id="${x.id}">
-            <span class="bell-icon-dot ${x.s.type_shooting}">
-              <i class="bx ${x.s.type_shooting === 'concours' ? 'bx-trophy' : 'bx-camera-movie'}"></i>
-            </span>
-            <div class="bell-item-body">
-              <span class="bell-when">${x.label}</span>
-              <strong>${esc(x.s.nom)}</strong>
-              <span class="bell-type">${x.s.type_shooting === 'concours' ? 'Concours' : 'Shooting personnalise'} - ${x.s.date_debut}</span>
-            </div>
-          </div>
-        `).join('')
-      : '<p class="aide" style="padding:16px">Aucun rappel.</p>';
-
-    document.querySelectorAll('[data-shooting-id]').forEach(x => {
-      x.onclick = () => {
-        openTab('shootings');
-        setTimeout(() => {
-          const r = document.querySelector(`[data-shooting-id="${x.dataset.shootingId}"]`);
-          r?.classList.add('row-highlight');
-          setTimeout(() => r?.classList.remove('row-highlight'), 3000);
-        }, 100);
-      };
-    });
-
-    $('bell-footer').style.display = bellItems.length > (settings.rappel_affichage_limite || 3) ? 'block' : 'none';
-    if (bellItems.length > (settings.rappel_affichage_limite || 3)) {
-      $('bell-voir-plus').innerHTML = `Voir plus (${bellItems.length - (settings.rappel_affichage_limite || 3)})`;
-    }
+    bellItemsCache = reminderItems();
+    const limit = settings.rappel_affichage_limite || 3;
+    if ($('bell-badge')) { $('bell-badge').textContent = bellItemsCache.length; $('bell-badge').classList.toggle('hidden', !bellItemsCache.length); }
+    if ($('bell-count-pill')) $('bell-count-pill').textContent = `${bellItemsCache.length} notification${bellItemsCache.length === 1 ? '' : 's'}`;
+    if ($('bell-list')) $('bell-list').innerHTML = bellItemsCache.length ? bellItemsCache.slice(0, limit).map(bellItemHTML).join('') : '<p class="aide" style="padding:16px">Aucun rappel.</p>';
+    document.querySelectorAll('[data-bell-shooting-id]').forEach(x => x.onclick = () => { openTab('shootings'); setTimeout(() => { const row = document.querySelector(`[data-shooting-id="${x.dataset.bellShootingId}"]`); row?.classList.add('row-highlight'); row?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => row?.classList.remove('row-highlight'), 3000); }, 100); });
+    if ($('bell-footer')) $('bell-footer').style.display = bellItemsCache.length > limit ? 'block' : 'none';
+    if ($('bell-voir-plus') && bellItemsCache.length > limit) $('bell-voir-plus').textContent = `Voir plus (${bellItemsCache.length - limit})`;
   }
 
   async function refreshUnpaid() {
-    const r = await db.from('factures')
-      .select('id, numero, montant_total, statut_paiement, cavalieres(prenom, nom)')
-      .in('statut_paiement', ['en_attente', 'en_retard'])
-      .order('date_facture');
-    unpaidItems = r.data || [];
-    const n = unpaidItems.length;
-    $('unpaid-badge').textContent = n;
-    $('unpaid-badge').classList.toggle('hidden', !n);
-    $('unpaid-count-pill').textContent = n;
-    $('unpaid-list').innerHTML = n
-      ? unpaidItems.slice(0, 10).map(unpaidHTML).join('')
-      : '<p class="aide" style="padding:16px">Aucune facture non payee.</p>';
-
-    document.querySelectorAll('.unpaid-item').forEach(x => {
-      x.onclick = () => {
-        openTab('factures');
-        setTimeout(() => {
-          const r = document.querySelector(`[data-invoice-id="${x.dataset.invoiceId}"]`);
-          r?.classList.add('row-highlight');
-          r?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => r?.classList.remove('row-highlight'), 3000);
-        }, 100);
-      };
-    });
+    const { data, error } = await db.from('factures').select('id,numero,montant_total,statut_paiement,cavalieres(prenom,nom)').in('statut_paiement', ['en_attente', 'en_retard']).order('date_facture');
+    if (error) return console.error(error);
+    unpaidItems = data || [];
+    if ($('unpaid-badge')) { $('unpaid-badge').textContent = unpaidItems.length; $('unpaid-badge').classList.toggle('hidden', !unpaidItems.length); }
+    if ($('unpaid-count-pill')) $('unpaid-count-pill').textContent = unpaidItems.length;
+    if ($('unpaid-list')) $('unpaid-list').innerHTML = unpaidItems.length ? unpaidItems.slice(0, 10).map(f => `<div class="bell-item unpaid-item" data-unpaid-id="${f.id}"><span class="bell-icon-dot" style="background:var(--warning)"><i class="bx bx-wallet"></i></span><div class="bell-item-body"><span class="bell-when">Paiement attendu</span><strong>${safe(f.numero)}</strong><span class="bell-type">${safe(f.cavalieres?.prenom)} ${safe(f.cavalieres?.nom)} - ${euro(f.montant_total)}</span></div></div>`).join('') : '<p class="aide" style="padding:16px">Aucune facture non payee.</p>';
+    document.querySelectorAll('[data-unpaid-id]').forEach(x => x.onclick = () => { openTab('factures'); setTimeout(() => { const row = document.querySelector(`[data-invoice-id="${x.dataset.unpaidId}"]`); row?.classList.add('row-highlight'); row?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => row?.classList.remove('row-highlight'), 3000); }, 100); });
   }
 
-  $('bell-voir-plus').onclick = () => {
-    $('notifs-full-list').innerHTML = bellItems
-      .map(x => `<div class="bell-item" data-shooting-id="${x.id}"><strong>${esc(x.s.nom)}</strong><span>${x.label} - ${x.s.date_debut}</span></div>`)
-      .join('');
-    $('bell-menu').classList.remove('open');
-    $('modal-notifs').classList.add('visible');
-  };
-
-  $('save-custom-theme').onclick = () => {
-    const activeTheme = root.dataset.colorTheme || 'classic';
-    const overrides = getThemePaletteOverrides();
-    const colors = getPaletteColors(activeTheme);
-
-    overrides[activeTheme] = colors;
-    saveThemePaletteOverrides(overrides);
-    alert('Couleurs du theme enregistrees');
-  };
-
-  $('reset-theme-colors')?.addEventListener('click', resetThemeColors);
+  $('bell-voir-plus')?.addEventListener('click', () => { if ($('notifs-full-list')) $('notifs-full-list').innerHTML = bellItemsCache.map(bellItemHTML).join('') || '<p class="aide">Aucun rappel.</p>'; $('bell-menu')?.classList.remove('open'); $('modal-notifs')?.classList.add('visible'); });
 
   async function loadDashboard() {
     try {
-      const [ridersResult, stablesResult, invoicesResult, shootingsResult] = await Promise.all([
-        db.from('cavalieres').select('id'),
-        db.from('ecuries').select('id'),
-        db.from('factures').select('*, cavalieres(nom, prenom)'),
-        db.from('concours').select('*').order('date_debut')
-      ]);
-
-      const riders = ridersResult.data || [];
-      const stables = stablesResult.data || [];
-      const invoices = invoicesResult.data || [];
-      const shootingsData = shootingsResult.data || [];
-
-      $('stat-cavalieres').textContent = riders.length;
-      $('stat-ecuries').textContent = stables.length;
-
+      const [ridersResult, stablesResult, invoicesResult, shootingsResult] = await Promise.all([db.from('cavalieres').select('id'), db.from('ecuries').select('id'), db.from('factures').select('*,cavalieres(nom,prenom)'), db.from('concours').select('*').order('date_debut')]);
+      const riders = ridersResult.data || [], stables = stablesResult.data || [], invoices = invoicesResult.data || [], shootingData = shootingsResult.data || [];
+      if ($('stat-cavalieres')) $('stat-cavalieres').textContent = riders.length;
+      if ($('stat-ecuries')) $('stat-ecuries').textContent = stables.length;
       const now = new Date();
-
-      const paidInvoices = invoices.filter(invoice => invoice.statut_paiement === 'payee');
-
-      const currentMonthRevenue = paidInvoices
-        .filter(invoice => {
-          const date = new Date(`${invoice.date_facture}T12:00:00`);
-          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-        })
-        .reduce((total, invoice) => total + Number(invoice.montant_total || 0), 0);
-
-      $('stat-ca-mois').textContent = euro(currentMonthRevenue);
-
-      const unpaidCount = invoices.filter(invoice =>
-        ['en_attente', 'en_retard'].includes(invoice.statut_paiement)
-      ).length;
-
-      $('stat-en-attente').textContent = unpaidCount;
-
-      const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-      const labels = [];
-      const monthlyRevenue = [];
-
-      for (let offset = 5; offset >= 0; offset--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-        labels.push(monthNames[monthDate.getMonth()]);
-        const amount = paidInvoices
-          .filter(invoice => {
-            const date = new Date(`${invoice.date_facture}T12:00:00`);
-            return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
-          })
-          .reduce((total, invoice) => total + Number(invoice.montant_total || 0), 0);
-        monthlyRevenue.push(amount);
-      }
-
-      if (chart) {
-        chart.destroy();
-        chart = null;
-      }
-
-      const chartCanvas = $('chart-ca');
-
-      if (window.Chart && chartCanvas) {
-        chart = new Chart(chartCanvas, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [{
-              label: 'CA encaissé',
-              data: monthlyRevenue,
-              backgroundColor: getComputedStyle(root).getPropertyValue('--accent').trim() || '#556ee6',
-              borderRadius: 5,
-              borderSkipped: false
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 3.2,
-            animation: { duration: 800, easing: 'easeOutQuart' },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: context => `CA encaissé : ${euro(context.raw)}`
-                }
-              }
-            },
-            scales: {
-              x: { grid: { display: false } },
-              y: {
-                beginAtZero: true,
-                ticks: { callback: value => euro(value) }
-              }
-            }
-          }
-        });
-      }
-
-      const upcomingShootings = shootingsData
-        .filter(shooting => shooting.date_debut >= today())
-        .slice(0, 5);
-
-      $('liste-prochains-shootings').innerHTML = upcomingShootings
-        .map(shooting => `
-          <li>
-            <span>${esc(shooting.nom)}</span>
-            <span class="badge-date">${shooting.date_debut}</span>
-          </li>
-        `)
-        .join('');
-
-      const latestInvoices = [...invoices]
-        .sort((a, b) => new Date(`${b.date_facture}T12:00:00`) - new Date(`${a.date_facture}T12:00:00`))
-        .slice(0, 5);
-
-      const latestInvoicesTable = $('liste-dernieres-factures');
-      if (latestInvoicesTable) {
-        latestInvoicesTable.innerHTML = latestInvoices.length
-          ? latestInvoices
-            .map(invoice => `
-              <tr>
-                <td>${esc(invoice.numero || '-')}</td>
-                <td>${esc(invoice.cavalieres?.prenom || '-')} ${esc(invoice.cavalieres?.nom || '')}</td>
-                <td>${esc(invoice.date_facture || '-')}</td>
-                <td>${euro(invoice.montant_total || 0)}</td>
-                <td>
-                  <span class="badge-statut badge-${esc(invoice.statut_paiement || 'en_attente')}">
-                    ${esc(invoice.statut_paiement || 'en_attente')}
-                  </span>
-                </td>
-              </tr>
-            `)
-            .join('')
-          : '<tr><td colspan="5">Aucune facture</td></tr>';
-      }
-    } catch (error) {
-      console.error('Erreur de chargement du tableau de bord :', error);
-    }
+      const paid = invoices.filter(i => i.statut_paiement === 'payee');
+      const monthRevenue = paid.filter(i => { const d = new Date(`${i.date_facture}T12:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((sum, i) => sum + Number(i.montant_total || 0), 0);
+      if ($('stat-ca-mois')) $('stat-ca-mois').textContent = euro(monthRevenue);
+      if ($('stat-en-attente')) $('stat-en-attente').textContent = invoices.filter(i => ['en_attente', 'en_retard'].includes(i.statut_paiement)).length;
+      const names = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const labels = [], values = [];
+      for (let offset = 5; offset >= 0; offset--) { const md = new Date(now.getFullYear(), now.getMonth() - offset, 1); labels.push(names[md.getMonth()]); values.push(paid.filter(i => { const d = new Date(`${i.date_facture}T12:00:00`); return d.getMonth() === md.getMonth() && d.getFullYear() === md.getFullYear(); }).reduce((sum, i) => sum + Number(i.montant_total || 0), 0)); }
+      if (chart) { chart.destroy(); chart = null; }
+      const canvas = $('chart-ca');
+      if (window.Chart && canvas) chart = new Chart(canvas, { type: 'bar', data: { labels, datasets: [{ label: 'CA encaissé', data: values, backgroundColor: getComputedStyle(root).getPropertyValue('--accent').trim() || '#556EE6', borderRadius: 5, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: true, aspectRatio: 3.2, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `CA encaissé : ${euro(c.raw)}` } } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: value => euro(value) } } } } });
+      if ($('liste-prochains-shootings')) $('liste-prochains-shootings').innerHTML = shootingData.filter(s => s.date_debut >= dateNow()).slice(0, 5).map(s => `<li><span>${safe(s.nom)}</span><span class="badge-date">${safe(s.date_debut)}</span></li>`).join('') || '<li>Aucun shooting a venir</li>';
+      if ($('liste-dernieres-factures')) $('liste-dernieres-factures').innerHTML = [...invoices].sort((a, b) => new Date(`${b.date_facture}T12:00:00`) - new Date(`${a.date_facture}T12:00:00`)).slice(0, 5).map(i => `<tr><td>${safe(i.numero || '-')}</td><td>${safe(i.cavalieres?.prenom || '-')} ${safe(i.cavalieres?.nom || '')}</td><td>${safe(i.date_facture || '-')}</td><td>${euro(i.montant_total)}</td><td><span class="badge-statut badge-${safe(i.statut_paiement || 'en_attente')}">${safe(i.statut_paiement || 'en_attente')}</span></td></tr>`).join('') || '<tr><td colspan="5">Aucune facture</td></tr>';
+    } catch (error) { console.error('Erreur de chargement du tableau de bord :', error); }
   }
 
   async function init() {
@@ -1462,10 +818,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setLayout(localStorage.getItem('layout') || 'vertical');
     setSidebar(localStorage.getItem('sidebar') || 'normal');
     setColorTheme(localStorage.getItem('colorTheme') || 'classic');
-    profile();
+    loadLocalProfile();
     initIconFields();
     applyIcons();
-    $('fa-date').value = today();
+    renderThemeColorFields();
+    if ($('fa-date')) $('fa-date').value = dateNow();
     await loadSettings();
     await loadStables();
     await loadRiders();
