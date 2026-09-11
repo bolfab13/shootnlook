@@ -8,7 +8,7 @@
 /* Palette classique claire par défaut */
 :root {
   --bg-body: #f5f6f8;
-  --bg-card: #ffcc00;
+  --bg-card: #ffffff;
   --bg-input: #ffffff;
   --text-main: #343a40;
   --text-secondary: #74788d;
@@ -37,7 +37,7 @@
 /* Palettes claires */
 [data-color-theme="classic"] {
   --bg-body: #f5f6f8;
-  --bg-card: #ffcc00;
+  --bg-card: #ffffff;
   --bg-input: #ffffff;
   --text-main: #343a40;
   --text-secondary: #74788d;
