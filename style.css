@@ -1896,4 +1896,24 @@ td button {
         max-height: 270px !important;
         width: 100% !important;
     }
+    /* Bouton de restauration des couleurs du thème */
+    #reset-theme-colors {
+        background: var(--accent) !important;
+        color: #fff !important;
+        border: 1px solid var(--accent) !important;
+    }
+    
+    #reset-theme-colors:hover {
+        background: var(--accent-hover) !important;
+        border-color: var(--accent-hover) !important;
+    }
+    #save-custom-theme {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border: 1px solid var(--accent) !important;
+    }
+    #save-custom-theme:hover {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+    }
 }
