@@ -52,9 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentEcurie = null;
   let currentCavaliere = null;
   let currentShooting = null;
+  let currentService = null;
   let ecuries = [];
   let cavaliers = [];
   let shootings = [];
+  let services = [];
   let calCursor = new Date();
   let bellItemsCache = [];
   let unpaidItems = [];
@@ -605,17 +607,31 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadServices() {
     const { data, error } = await db.from('prestations').select('*').eq('actif', true).order('prix');
     if (error) return console.error(error);
-    const services = data || [];
-    if ($('table-prestations')) $('table-prestations').querySelector('tbody').innerHTML = services.map(s => `<tr><td>${safe(s.libelle)}</td><td>${safe(s.type)}</td><td>${safe(s.quantite || '-')}</td><td>${euro(s.prix)}</td><td><button class="btn-danger" data-delete-service="${s.id}">Supprimer</button></td></tr>`).join('');
+    services = data || [];
+    if ($('table-prestations')) $('table-prestations').querySelector('tbody').innerHTML = services.map(s => `<tr><td>${safe(s.libelle)}</td><td>${safe(s.type)}</td><td>${safe(s.quantite || '-')}</td><td>${euro(s.prix)}</td><td><button data-edit-service="${s.id}">Modifier</button><button class="btn-danger" data-delete-service="${s.id}">Supprimer</button></td></tr>`).join('');
+    document.querySelectorAll('[data-edit-service]').forEach(b => b.onclick = () => editService(b.dataset.editService));
     document.querySelectorAll('[data-delete-service]').forEach(b => b.onclick = async () => { if (!confirm('Supprimer cette prestation ?')) return; const { error } = await db.from('prestations').update({ actif: false }).eq('id', b.dataset.deleteService); if (error) return alert(error.message); loadServices(); });
     document.querySelectorAll('.ligne-prestation').forEach(select => { const value = select.value; select.innerHTML = '<option value="">-- Prestation --</option>' + services.map(s => `<option value="${s.id}" data-prix="${s.prix}">${safe(s.libelle)} - ${euro(s.prix)}</option>`).join(''); select.value = value; });
   }
 
+  function editService(id) {
+    const s = services.find(x => String(x.id) === String(id));
+    if (!s) return;
+    currentService = id;
+    [['pr-libelle', s.libelle], ['pr-type', s.type], ['pr-quantite', s.quantite], ['pr-prix', s.prix]].forEach(([key, value]) => { if ($(key)) $(key).value = value || ''; });
+    if ($('pr-submit-btn')) $('pr-submit-btn').textContent = 'Enregistrer';
+    if ($('pr-annuler')) $('pr-annuler').style.display = 'inline-block';
+    openTab('prestations');
+  }
+
+  $('pr-annuler')?.addEventListener('click', () => { currentService = null; $('form-prestation')?.reset(); if ($('pr-submit-btn')) $('pr-submit-btn').textContent = 'Ajouter'; $('pr-annuler').style.display = 'none'; });
+
   $('form-prestation')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const { error } = await db.from('prestations').insert({ libelle: $('pr-libelle').value, type: $('pr-type').value, quantite: $('pr-quantite')?.value || null, prix: $('pr-prix').value });
-    if (error) return alert(error.message);
-    e.target.reset();
+    const p = { libelle: $('pr-libelle').value, type: $('pr-type').value, quantite: $('pr-quantite')?.value || null, prix: $('pr-prix').value };
+    const result = currentService ? await db.from('prestations').update(p).eq('id', currentService) : await db.from('prestations').insert(p);
+    if (result.error) return alert(result.error.message);
+    $('pr-annuler')?.click();
     loadServices();
   });
 
