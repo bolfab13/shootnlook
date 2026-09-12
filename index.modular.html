@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shoot’n’Look — Version expérimentale</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<script>(function(){document.documentElement.dataset.theme=localStorage.getItem('theme')||'light';document.documentElement.dataset.layout=localStorage.getItem('layout')||'vertical';document.documentElement.dataset.sidebar=localStorage.getItem('sidebar')||'normal';document.documentElement.dataset.colorTheme=localStorage.getItem('colorTheme')||'classic'})()</script>
+<style>
+  .about-panel { max-width: 420px; padding: 24px; }
+  .about-panel p { margin: 8px 0; }
+  .about-panel code { display: inline-block; padding: 3px 6px; border-radius: 4px; background: var(--bg-input); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside id="sidebar">
+    <div class="sidebar-logo"><span class="brand-icon"><i class="bx bx-camera"></i></span><span class="brand-name">SHOOT’N’LOOK</span></div>
+    <nav id="tabs">
+      <div class="menu-title">Général</div>
+      <button data-tab="dashboard" class="active"><span class="icon"></span><span class="nav-label">Tableau de bord</span></button>
+      <button data-tab="reglages"><span class="icon"></span><span class="nav-label">Réglages</span></button>
+    </nav>
+  </aside>
+  <div class="content-wrapper">
+    <header id="topbar">
+      <button class="topbar-icon-btn" id="sidebar-toggle"><i class="bx bx-menu"></i></button>
+      <h1 id="page-title">Tableau de bord</h1>
+      <div class="topbar-actions">
+        <div class="topbar-menu-wrap">
+          <button class="user-button" id="user-toggle"><span class="user-avatar">A</span><span class="user-name" id="topbar-user-name">Admin</span><i class="bx bx-chevron-down"></i></button>
+          <div class="dropdown-menu user-dropdown" id="user-menu">
+            <button id="about-btn"><i class="bx bx-info-circle"></i> À propos</button>
+            <button data-open-tab="reglages"><i class="bx bx-cog"></i> Réglages</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section id="dashboard" class="tab active"><div class="page-heading"><div><h2>Version expérimentale</h2><p>Cette page sert à vérifier le chargement des modules.</p></div></div></section>
+      <section id="reglages" class="tab"><div class="page-heading"><div><h2>Réglages</h2><p>Les modules sont chargés sans modifier l’application originale.</p></div></div></section>
+    </main>
+  </div>
+</div>
+<div class="modal" id="about-modal">
+  <div class="modal-contenu about-panel">
+    <button class="modal-close" id="close-about">&times;</button>
+    <h3>À propos</h3>
+    <p><strong>Application :</strong> Shoot’n’Look</p>
+    <p><strong>Version :</strong> <code>0.1.0-modular</code></p>
+    <p><strong>Branche :</strong> <code>refactor/modularisation</code></p>
+    <p><strong>Mode :</strong> expérimental</p>
+  </div>
+</div>
+<script src="config.js"></script>
+<script type="module">
+import { applyTheme, getTheme, getColorTheme } from './js/theme.js';
+import { applyIcons } from './js/icons.js';
+import { initNavigation } from './js/navigation.js';
+import { initMenuEvents, closeMenus } from './js/events.js';
+
+applyTheme(document.documentElement, getTheme(), getColorTheme());
+applyIcons();
+initNavigation({ closeMenus });
+initMenuEvents();
+
+document.getElementById('about-btn')?.addEventListener('click', () => {
+  document.getElementById('about-modal')?.classList.add('visible');
+  closeMenus();
+});
+document.getElementById('close-about')?.addEventListener('click', () => {
+  document.getElementById('about-modal')?.classList.remove('visible');
+});
+</script>
+</body>
+</html>
