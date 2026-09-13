@@ -1,35 +1,39 @@
-export const pageTitles = {
-  dashboard: 'Tableau de bord',
-  calendrier: 'Calendrier',
-  ecuries: 'Ecuries',
-  cavaliers: 'Cavalier(e)s',
-  shootings: 'Shootings',
-  prestations: 'Grille tarifaire',
-  facturation: 'Creer une facture',
-  factures: 'Factures emises',
-  reglages: 'Reglages'
-};
+import { $ } from './core.js';
 
-export const openTab = (name, closeMenus = () => {}) => {
-  document.querySelector(`#tabs button[data-tab="${name}"]`)?.click();
-  closeMenus();
-};
+export function initNavigation({ onTabChange } = {}) {
+  const layout = document.querySelector('.layout');
+  const buttons = document.querySelectorAll('#tabs button[data-tab]');
+  const titles = Object.fromEntries([...buttons].map(button => [button.dataset.tab, button.querySelector('.nav-label')?.textContent || '']));
 
-export const initNavigation = ({ onTabChange, closeMenus = () => {} } = {}) => {
-  document.querySelectorAll('#tabs button[data-tab]').forEach(button => {
+  buttons.forEach(button => {
     button.addEventListener('click', () => {
-      document.querySelectorAll('#tabs button[data-tab]')
-        .forEach(item => item.classList.toggle('active', item === button));
-      document.querySelectorAll('.tab')
-        .forEach(tab => tab.classList.toggle('active', tab.id === button.dataset.tab));
-      const title = document.getElementById('page-title');
-      if (title) title.textContent = pageTitles[button.dataset.tab] || '';
-      closeMenus();
+      buttons.forEach(item => item.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      button.classList.add('active');
+      $(button.dataset.tab)?.classList.add('active');
+      const title = $('#page-title');
+      if (title) title.textContent = titles[button.dataset.tab] || '';
+      layout?.classList.remove('mobile-menu');
       onTabChange?.(button.dataset.tab);
     });
   });
+}
 
-  document.querySelectorAll('[data-open-tab]').forEach(button => {
-    button.addEventListener('click', () => openTab(button.dataset.openTab, closeMenus));
+export function initSidebarToggle() {
+  const button = $('#sidebar-toggle');
+  const layout = document.querySelector('.layout');
+  if (!button || !layout || button.dataset.bound === 'true') return;
+  button.dataset.bound = 'true';
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (window.innerWidth <= 780) {
+      layout.classList.toggle('mobile-menu');
+    } else {
+      const root = document.documentElement;
+      const next = root.dataset.sidebar === 'compact' ? 'normal' : 'compact';
+      root.dataset.sidebar = next;
+      localStorage.setItem('sidebar', next);
+    }
   });
-};
+}
