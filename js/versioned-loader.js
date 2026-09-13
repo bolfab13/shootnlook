@@ -1,0 +1,7 @@
+const APP_VERSION = '0.2.0-modular';
+const APP_BUILD = '20260913-1832';
+
+export { APP_VERSION, APP_BUILD };
+
+window.APP_VERSION = APP_VERSION;
+window.APP_BUILD = APP_BUILD;
