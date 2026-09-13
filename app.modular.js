@@ -1,5 +1,5 @@
 import { $, dateNow } from './js/core.js';
-import { closeMenus, openTab } from './js/ui.js';
+import { closeMenus } from './js/ui.js';
 import { applyTheme, getTheme, getColorTheme } from './js/theme.js';
 import { applyIcons, initIconFields } from './js/icons.js';
 import { initNavigation } from './js/navigation.js';
@@ -7,26 +7,32 @@ import { loadProfileIntoForm } from './js/profile.js';
 import { initMenuEvents } from './js/events.js';
 import { loadSettings } from './js/settings.js';
 
+let initialized = false;
+
+const toggleSidebar = () => {
+  const root = document.documentElement;
+  const layout = document.querySelector('.layout');
+  if (window.innerWidth <= 780) {
+    layout?.classList.toggle('mobile-menu');
+    return;
+  }
+
+  const next = root.dataset.sidebar === 'compact' ? 'normal' : 'compact';
+  root.dataset.sidebar = next;
+  localStorage.setItem('sidebar', next);
+};
+
 const initModularApp = async () => {
+  if (initialized) return;
+  initialized = true;
+
   applyTheme(document.documentElement, getTheme(), getColorTheme());
   initIconFields();
   applyIcons();
   loadProfileIntoForm();
 
-  initNavigation({
-    closeMenus,
-    onTabChange: tab => {
-      if (tab === 'dashboard') window.loadDashboard?.();
-      if (tab === 'calendrier') window.renderCalendar?.();
-    }
-  });
-
-  initMenuEvents({
-    onSidebarToggle: () => {
-      const layout = document.querySelector('.layout');
-      if (window.innerWidth <= 780) layout?.classList.toggle('mobile-menu');
-    }
-  });
+  initNavigation({ closeMenus });
+  initMenuEvents({ onSidebarToggle: toggleSidebar });
 
   const date = $('fa-date');
   if (date && !date.value) date.value = dateNow();
@@ -43,4 +49,4 @@ const initModularApp = async () => {
   }
 };
 
-document.addEventListener('DOMContentLoaded', initModularApp);
+document.addEventListener('DOMContentLoaded', initModularApp, { once: true });
