@@ -160,13 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const themeColorLabels = {
-    '--bg-body': 'Fond gÃ©nÃ©ral', '--bg-card': 'Fond des cartes', '--bg-input': 'Fond des champs',
+    '--bg-body': 'Fond général', '--bg-card': 'Fond des cartes', '--bg-input': 'Fond des champs',
     '--text-main': 'Texte principal', '--text-secondary': 'Texte secondaire', '--border': 'Bordures',
-    '--table-header': 'En-tÃªte de tableau', '--table-hover': 'Ligne de tableau au survol',
-    '--sidebar-bg': 'Fond du menu', '--sidebar-text': 'Texte du menu', '--sidebar-active': 'Ã‰lÃ©ment actif du menu',
+    '--table-header': 'En-tête de tableau', '--table-hover': 'Ligne de tableau au survol',
+    '--sidebar-bg': 'Fond du menu', '--sidebar-text': 'Texte du menu', '--sidebar-active': 'Élément actif du menu',
     '--accent': 'Couleur principale', '--accent-hover': 'Couleur principale au survol',
     '--secondary': 'Boutons secondaires', '--secondary-hover': 'Boutons secondaires au survol',
-    '--success': 'SuccÃ¨s', '--success-bg': 'Fond succÃ¨s', '--warning': 'Avertissement',
+    '--success': 'Succès', '--success-bg': 'Fond succès', '--warning': 'Avertissement',
     '--warning-bg': 'Fond avertissement', '--danger': 'Erreur / suppression', '--danger-bg': 'Fond erreur',
     '--info': 'Information', '--info-bg': 'Fond information'
   };
@@ -819,12 +819,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const monthRevenue = paid.filter(i => { const d = new Date(`${i.date_facture}T12:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((sum, i) => sum + Number(i.montant_total || 0), 0);
       if ($('stat-ca-mois')) $('stat-ca-mois').textContent = euro(monthRevenue);
       if ($('stat-en-attente')) $('stat-en-attente').textContent = invoices.filter(i => ['en_attente', 'en_retard'].includes(i.statut_paiement)).length;
-      const names = ['Jan', 'FÃ©v', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'AoÃ»t', 'Sep', 'Oct', 'Nov', 'DÃ©c'];
+      const names = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
       const labels = [], values = [];
       for (let offset = 5; offset >= 0; offset--) { const md = new Date(now.getFullYear(), now.getMonth() - offset, 1); labels.push(names[md.getMonth()]); values.push(paid.filter(i => { const d = new Date(`${i.date_facture}T12:00:00`); return d.getMonth() === md.getMonth() && d.getFullYear() === md.getFullYear(); }).reduce((sum, i) => sum + Number(i.montant_total || 0), 0)); }
       if (chart) { chart.destroy(); chart = null; }
       const canvas = $('chart-ca');
-      if (window.Chart && canvas) chart = new Chart(canvas, { type: 'bar', data: { labels, datasets: [{ label: 'CA encaissÃ©', data: values, backgroundColor: getComputedStyle(root).getPropertyValue('--accent').trim() || '#556EE6', borderRadius: 5, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: true, aspectRatio: 3.2, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `CA encaissÃ© : ${euro(c.raw)}` } } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: value => euro(value) } } } } });
+      if (window.Chart && canvas) chart = new Chart(canvas, { type: 'bar', data: { labels, datasets: [{ label: 'CA encaissé', data: values, backgroundColor: getComputedStyle(root).getPropertyValue('--accent').trim() || '#556EE6', borderRadius: 5, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: true, aspectRatio: 3.2, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `CA encaissé : ${euro(c.raw)}` } } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: value => euro(value) } } } } });
       if ($('liste-prochains-shootings')) $('liste-prochains-shootings').innerHTML = shootingData.filter(s => s.date_debut >= dateNow()).slice(0, 5).map(s => `<li><span>${safe(s.nom)}</span><span class="badge-date">${safe(s.date_debut)}</span></li>`).join('') || '<li>Aucun shooting a venir</li>';
       if ($('liste-dernieres-factures')) $('liste-dernieres-factures').innerHTML = [...invoices].sort((a, b) => new Date(`${b.date_facture}T12:00:00`) - new Date(`${a.date_facture}T12:00:00`)).slice(0, 5).map(i => `<tr><td>${safe(i.numero || '-')}</td><td>${safe(i.cavalieres?.prenom || '-')} ${safe(i.cavalieres?.nom || '')}</td><td>${safe(i.date_facture || '-')}</td><td>${euro(i.montant_total)}</td><td><span class="badge-statut badge-${safe(i.statut_paiement || 'en_attente')}">${safe(i.statut_paiement || 'en_attente')}</span></td></tr>`).join('') || '<tr><td colspan="5">Aucune facture</td></tr>';
     } catch (error) { console.error('Erreur de chargement du tableau de bord :', error); }
