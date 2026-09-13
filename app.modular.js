@@ -31,6 +31,12 @@ const toggleSidebar = () => {
   localStorage.setItem('sidebar', next);
 };
 
+const closeMobileSidebar = () => {
+  if (window.innerWidth <= 780) {
+    document.querySelector('.layout')?.classList.remove('mobile-menu');
+  }
+};
+
 const initModularApp = async () => {
   if (initialized) return;
   initialized = true;
@@ -42,11 +48,12 @@ const initModularApp = async () => {
   initNavigation({ closeMenus });
 
   const sidebar = document.getElementById('sidebar-toggle');
-  if (sidebar) {
-    sidebar.onclick = toggleSidebar;
-  }
+  if (sidebar) sidebar.onclick = toggleSidebar;
 
-  const originalMenuInit = document.querySelectorAll('.topbar-menu-wrap');
+  document.querySelectorAll('#tabs button[data-tab]').forEach(button => {
+    button.addEventListener('click', closeMobileSidebar, { passive: true });
+  });
+
   initMenuEvents();
 
   const date = $('fa-date');
