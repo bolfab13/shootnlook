@@ -75,12 +75,39 @@ const initModularApp = async () => {
     document.getElementById('about-modal')?.classList.remove('visible');
   });
 
+  document.getElementById('open-reglages-btn')?.addEventListener('click', () => {
+    closeMenus();
+    openTab('reglages');
+  });
+
+  document.querySelectorAll('[data-open-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      closeMenus();
+      openTab(button.dataset.openTab);
+    });
+  });
+
   document.getElementById('edit-profile-btn')?.addEventListener('click', () => {
     document.getElementById('profile-modal')?.classList.add('visible');
     closeMenus();
   });
 
   document.getElementById('fermer-profil')?.addEventListener('click', () => {
+    document.getElementById('profile-modal')?.classList.remove('visible');
+  });
+
+  document.getElementById('form-profil')?.addEventListener('submit', event => {
+    event.preventDefault();
+    const profile = {
+      pseudo: document.getElementById('pf-pseudo')?.value.trim() || 'Admin',
+      societe: document.getElementById('pf-societe')?.value.trim() || '',
+      adresse: document.getElementById('pf-adresse')?.value.trim() || '',
+      codePostal: document.getElementById('pf-code-postal')?.value.trim() || '',
+      ville: document.getElementById('pf-ville')?.value.trim() || ''
+    };
+
+    saveProfile(profile);
+    loadProfileIntoForm();
     document.getElementById('profile-modal')?.classList.remove('visible');
   });
 
