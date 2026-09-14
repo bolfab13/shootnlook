@@ -1,11 +1,13 @@
-import { $, dateNow } from './js/core.js';
-import { closeMenus } from './js/ui.js';
+import { $, dateNow, safe, euro } from './js/core.js';
+import { closeMenus, openTab } from './js/ui.js';
 import { applyTheme, getTheme, getColorTheme } from './js/theme.js';
 import { applyIcons, initIconFields } from './js/icons.js';
-import { initNavigation } from './js/navigation.js';
+import { initNavigation, initSidebarToggle } from './js/navigation.js';
 import { loadProfileIntoForm } from './js/profile.js';
 import { initMenuEvents } from './js/events.js';
 import { loadSettings } from './js/settings.js';
+import { createPrestationsModule } from './js/prestations.js';
+import { APP_VERSION, APP_BUILD } from './js/versioned-loader.js';
 
 let initialized = false;
 
@@ -41,10 +43,14 @@ const initModularApp = async () => {
   if (initialized) return;
   initialized = true;
 
+  window.APP_VERSION = APP_VERSION;
+  window.APP_BUILD = APP_BUILD;
+
   applyTheme(document.documentElement, getTheme(), getColorTheme());
   initIconFields();
   applyIcons();
   loadProfileIntoForm();
+  initSidebarToggle();
   initNavigation({ closeMenus });
 
   const sidebar = document.getElementById('sidebar-toggle');
@@ -54,10 +60,20 @@ const initModularApp = async () => {
     button.addEventListener('click', closeMobileSidebar, { passive: true });
   });
 
-  initMenuEvents();
+  initMenuEvents({ onSidebarToggle: toggleSidebar });
 
   const date = $('fa-date');
   if (date && !date.value) date.value = dateNow();
+
+  const aboutButton = document.getElementById('about-btn');
+  aboutButton?.addEventListener('click', () => {
+    document.getElementById('about-modal')?.classList.add('visible');
+    closeMenus();
+  });
+
+  document.getElementById('close-about')?.addEventListener('click', () => {
+    document.getElementById('about-modal')?.classList.remove('visible');
+  });
 
   if (!window.supabase || typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
     setSupabaseStatus('unconfigured', 'Non configuré');
@@ -68,6 +84,21 @@ const initModularApp = async () => {
   try {
     window.appSettings = await loadSettings(db);
     setSupabaseStatus('connected', 'Connecté');
+
+    const prestationsModule = createPrestationsModule({
+      db,
+      $,
+      state: { services: [], currentService: null },
+      safe,
+      euro,
+      openTab
+    });
+
+    window.appModules = window.appModules || {};
+    window.appModules.prestations = prestationsModule;
+
+    prestationsModule.bindForm();
+    await prestationsModule.loadServices();
   } catch (error) {
     console.error('Erreur de chargement des réglages Supabase', error);
     setSupabaseStatus('error', 'Erreur de connexion');

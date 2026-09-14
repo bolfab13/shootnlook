@@ -16,33 +16,149 @@
 <body>
 <div class="layout">
   <aside id="sidebar">
-    <div class="sidebar-logo"><span class="brand-icon"><i class="bx bx-camera"></i></span><span class="brand-name">SHOOT’N’LOOK</span></div>
+    <div class="sidebar-logo">
+      <span class="brand-icon"><i class="bx bx-camera"></i></span>
+      <span class="brand-name" id="sidebar-company-name">PHOTO EQUESTRE</span>
+    </div>
     <nav id="tabs">
-      <div class="menu-title">Général</div>
+      <div class="menu-title">General</div>
       <button data-tab="dashboard" class="active"><span class="icon"></span><span class="nav-label">Tableau de bord</span></button>
-      <button data-tab="reglages"><span class="icon"></span><span class="nav-label">Réglages</span></button>
+      <button data-tab="calendrier"><span class="icon"></span><span class="nav-label">Calendrier</span></button>
+      <div class="menu-title">Gestion</div>
+      <button data-tab="ecuries"><span class="icon"></span><span class="nav-label">Ecuries</span></button>
+      <button data-tab="cavaliers"><span class="icon"></span><span class="nav-label">Cavalier(e)s</span></button>
+      <button data-tab="shootings"><span class="icon"></span><span class="nav-label">Shootings</span></button>
+      <button data-tab="prestations"><span class="icon"></span><span class="nav-label">Grille tarifaire</span></button>
+      <div class="menu-title">Facturation</div>
+      <button data-tab="facturation"><span class="icon"></span><span class="nav-label">Creer une facture</span></button>
+      <button data-tab="factures"><span class="icon"></span><span class="nav-label">Factures emises</span></button>
+      <div class="menu-title">Compte</div>
+      <button data-tab="reglages"><span class="icon"></span><span class="nav-label">Reglages</span></button>
     </nav>
   </aside>
+
   <div class="content-wrapper">
     <header id="topbar">
       <button class="topbar-icon-btn" id="sidebar-toggle"><i class="bx bx-menu"></i></button>
+      <div class="topbar-search"><i class="bx bx-search"></i><input id="global-search" placeholder="Rechercher..."></div>
       <h1 id="page-title">Tableau de bord</h1>
       <div class="topbar-actions">
         <div class="topbar-menu-wrap">
-          <button class="user-button" id="user-toggle"><span class="user-avatar">A</span><span class="user-name" id="topbar-user-name">Admin</span><i class="bx bx-chevron-down"></i></button>
-          <div class="dropdown-menu user-dropdown" id="user-menu">
+          <button class="topbar-icon-btn bell-btn" id="bell-toggle" title="Notifications">
+            <i class="bx bx-bell"></i>
+            <span class="bell-badge hidden" id="bell-badge">0</span>
+          </button>
+          <div class="dropdown-menu bell-dropdown" id="bell-menu">
+            <div class="bell-head">
+              <h3>Notifications</h3>
+              <span class="bell-count-pill" id="bell-count-pill">0 notification</span>
+            </div>
+            <div id="bell-list" class="bell-scroll"><p class="aide">Aucun rappel.</p></div>
+            <div class="bell-footer" id="bell-footer" style="display:none">
+              <button class="link-btn" id="bell-voir-plus">Voir plus</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="topbar-menu-wrap">
+          <button class="topbar-icon-btn" id="unpaid-toggle" title="Factures non payees">
+            <i class="bx bx-wallet"></i>
+            <span class="unpaid-badge hidden" id="unpaid-badge">0</span>
+          </button>
+          <div class="dropdown-menu unpaid-dropdown" id="unpaid-menu">
+            <div class="unpaid-head">
+              <h3>Factures non payees</h3>
+              <span id="unpaid-count-pill">0</span>
+            </div>
+            <div id="unpaid-list" class="bell-scroll"><p class="aide">Aucune facture non payee.</p></div>
+          </div>
+        </div>
+
+        <div class="topbar-menu-wrap">
+          <button class="topbar-icon-btn" id="settings-toggle"><i class="bx bx-cog"></i></button>
+          <div class="dropdown-menu settings-dropdown" id="settings-menu">
+            <div class="dropdown-title">AFFICHAGE</div>
+            <label>Theme
+              <select id="setting-theme">
+                <option value="light">Clair</option>
+                <option value="dark">Sombre</option>
+              </select>
+            </label>
+            <label>Disposition
+              <select id="setting-layout">
+                <option value="vertical">Verticale</option>
+                <option value="horizontal">Horizontale</option>
+              </select>
+            </label>
+            <label>Menu
+              <select id="setting-sidebar">
+                <option value="normal">Normal</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+            <button class="link-btn" id="open-reglages-btn">Tous les reglages</button>
+          </div>
+        </div>
+
+        <div class="topbar-menu-wrap">
+          <button class="user-button" id="user-toggle">
+            <span class="user-avatar">A</span>
+            <span class="user-name" id="topbar-user-name">Admin</span>
+            <i class="bx bx-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu user-dropdown open" id="user-menu">
             <button id="about-btn"><i class="bx bx-info-circle"></i> À propos</button>
             <button data-open-tab="reglages"><i class="bx bx-cog"></i> Réglages</button>
           </div>
         </div>
       </div>
     </header>
+
     <main>
-      <section id="dashboard" class="tab active"><div class="page-heading"><div><h2>Version expérimentale</h2><p>Cette page sert à vérifier le chargement des modules.</p></div></div></section>
-      <section id="reglages" class="tab"><div class="page-heading"><div><h2>Réglages</h2><p>Les modules sont chargés sans modifier l’application originale.</p></div></div></section>
+      <section id="dashboard" class="tab active">
+        <div class="page-heading">
+          <div>
+            <h2>Bonjour <span id="dashboard-user-name">Admin</span> !</h2>
+            <p>Version modulaire expérimentale.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="calendrier" class="tab">
+        <div class="page-heading"><div><h2>Calendrier</h2><p>Calendrier du module modularisé.</p></div></div>
+      </section>
+
+      <section id="ecuries" class="tab">
+        <div class="page-heading"><div><h2>Ecuries</h2><p>Gestion des écuries.</p></div></div>
+      </section>
+
+      <section id="cavaliers" class="tab">
+        <div class="page-heading"><div><h2>Cavalier(e)s</h2><p>Gestion des cavaliers.</p></div></div>
+      </section>
+
+      <section id="shootings" class="tab">
+        <div class="page-heading"><div><h2>Shootings</h2><p>Planification et suivi des shootings.</p></div></div>
+      </section>
+
+      <section id="prestations" class="tab">
+        <div class="page-heading"><div><h2>Grille tarifaire</h2><p>Modules de prestations.</p></div></div>
+      </section>
+
+      <section id="facturation" class="tab">
+        <div class="page-heading"><div><h2>Créer une facture</h2><p>Module de facturation.</p></div></div>
+      </section>
+
+      <section id="factures" class="tab">
+        <div class="page-heading"><div><h2>Factures émises</h2><p>Historique des factures.</p></div></div>
+      </section>
+
+      <section id="reglages" class="tab">
+        <div class="page-heading"><div><h2>Réglages</h2><p>Configuration de l’application.</p></div></div>
+      </section>
     </main>
   </div>
 </div>
+
 <div class="modal" id="about-modal">
   <div class="modal-contenu about-panel">
     <button class="modal-close" id="close-about">&times;</button>
@@ -53,25 +169,8 @@
     <p><strong>Mode :</strong> expérimental</p>
   </div>
 </div>
+
 <script src="config.js"></script>
-<script type="module">
-import { applyTheme, getTheme, getColorTheme } from './js/theme.js';
-import { applyIcons } from './js/icons.js';
-import { initNavigation } from './js/navigation.js';
-import { initMenuEvents, closeMenus } from './js/events.js';
-
-applyTheme(document.documentElement, getTheme(), getColorTheme());
-applyIcons();
-initNavigation({ closeMenus });
-initMenuEvents();
-
-document.getElementById('about-btn')?.addEventListener('click', () => {
-  document.getElementById('about-modal')?.classList.add('visible');
-  closeMenus();
-});
-document.getElementById('close-about')?.addEventListener('click', () => {
-  document.getElementById('about-modal')?.classList.remove('visible');
-});
-</script>
+<script type="module" src="./app.modular.js"></script>
 </body>
 </html>
