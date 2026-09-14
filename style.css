@@ -284,13 +284,9 @@ html, body {
 }
 
 .layout {
-    background: #f5f6f8;
-}
-
-.layout {
     display: flex;
     min-height: 100vh;
-    background: #d9d9d9;
+    background: #f5f6f8;
 }
 
 #sidebar {
