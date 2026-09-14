@@ -1,0 +1,21 @@
+{
+  "name": "shootnlook",
+  "version": "1.0.0",
+  "description": "Application de gestion de shootings et facturation pour Photo Equestre",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bolfab13/shootnlook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bolfab13/shootnlook/issues"
+  },
+  "homepage": "https://github.com/bolfab13/shootnlook#readme"
+}
