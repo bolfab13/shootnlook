@@ -6,6 +6,7 @@
 <title>Shoot’n’Look — Version expérimentale</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>(function(){document.documentElement.dataset.theme=localStorage.getItem('theme')||'light';document.documentElement.dataset.layout=localStorage.getItem('layout')||'vertical';document.documentElement.dataset.sidebar=localStorage.getItem('sidebar')||'normal';document.documentElement.dataset.colorTheme=localStorage.getItem('colorTheme')||'classic'})()</script>
 <style>
   .about-panel { max-width: 420px; padding: 24px; }
@@ -106,7 +107,7 @@
             <span class="user-name" id="topbar-user-name">Admin</span>
             <i class="bx bx-chevron-down"></i>
           </button>
-          <div class="dropdown-menu user-dropdown open" id="user-menu" style="display:block;">
+          <div class="dropdown-menu user-dropdown" id="user-menu">
             <div class="user-dropdown-head">
               <span class="user-avatar large">A</span>
               <div>
