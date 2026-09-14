@@ -75,12 +75,24 @@ const initModularApp = async () => {
     document.getElementById('about-modal')?.classList.remove('visible');
   });
 
-  if (!window.supabase || typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
+  document.getElementById('edit-profile-btn')?.addEventListener('click', () => {
+    document.getElementById('profile-modal')?.classList.add('visible');
+    closeMenus();
+  });
+
+  document.getElementById('fermer-profil')?.addEventListener('click', () => {
+    document.getElementById('profile-modal')?.classList.remove('visible');
+  });
+
+  const supabaseUrl = window.SUPABASE_URL || window.supabase?.supabaseUrl;
+  const supabaseAnonKey = window.SUPABASE_ANON_KEY || window.supabase?.supabaseKey;
+
+  if (!window.supabase || !supabaseUrl || !supabaseAnonKey) {
     setSupabaseStatus('unconfigured', 'Non configuré');
     return;
   }
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
   try {
     window.appSettings = await loadSettings(db);
     setSupabaseStatus('connected', 'Connecté');
