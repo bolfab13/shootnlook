@@ -106,7 +106,7 @@
             <span class="user-name" id="topbar-user-name">Admin</span>
             <i class="bx bx-chevron-down"></i>
           </button>
-          <div class="dropdown-menu user-dropdown open" id="user-menu">
+          <div class="dropdown-menu user-dropdown" id="user-menu" style="display:block;">
             <button id="about-btn"><i class="bx bx-info-circle"></i> À propos</button>
             <button data-open-tab="reglages"><i class="bx bx-cog"></i> Réglages</button>
           </div>
@@ -154,6 +154,14 @@
 
       <section id="reglages" class="tab">
         <div class="page-heading"><div><h2>Réglages</h2><p>Configuration de l’application.</p></div></div>
+        <div class="settings-card" style="max-width:520px;background:#fff;border:1px solid #e9ecef;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+          <h3 style="margin:0 0 14px;font-size:18px;">Informations de version</h3>
+          <p style="margin:8px 0;"><strong>Application :</strong> Shoot’n’Look</p>
+          <p style="margin:8px 0;"><strong>Version :</strong> 0.1.0-modular</p>
+          <p style="margin:8px 0;"><strong>Branche :</strong> refactor/modularisation</p>
+          <p style="margin:8px 0;"><strong>Build :</strong> local-preview</p>
+          <p style="margin:8px 0;"><strong>Mode :</strong> expérimental</p>
+        </div>
       </section>
     </main>
   </div>
