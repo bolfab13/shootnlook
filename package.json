@@ -17,5 +17,11 @@
   "bugs": {
     "url": "https://github.com/bolfab13/shootnlook/issues"
   },
-  "homepage": "https://github.com/bolfab13/shootnlook#readme"
+  "homepage": "https://github.com/bolfab13/shootnlook#readme",
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
 }
