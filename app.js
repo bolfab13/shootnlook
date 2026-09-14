@@ -1,5 +1,21 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log({
+    supabasePresent: !!window.supabase,
+    url: typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'ABSENTE',
+    keyPresent: typeof SUPABASE_ANON_KEY !== 'undefined'
+  });
+
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { user }, error: authError } = await db.auth.getUser();
+  console.log('Supabase utilisateur:', { user, authError });
+
+  try {
+    const { data, error } = await db.from('prestations').select('*').eq('actif', true);
+    console.log('Prestations Supabase:', { data, error });
+  } catch (debugError) {
+    console.warn('Erreur debug prestations:', debugError);
+  }
+
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
   const layout = document.querySelector('.layout');

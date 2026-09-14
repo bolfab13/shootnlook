@@ -114,13 +114,26 @@ const initModularApp = async () => {
   const supabaseUrl = window.SUPABASE_URL || window.supabase?.supabaseUrl;
   const supabaseAnonKey = window.SUPABASE_ANON_KEY || window.supabase?.supabaseKey;
 
+  console.log({
+    supabasePresent: !!window.supabase,
+    url: supabaseUrl || 'ABSENTE',
+    keyPresent: !!supabaseAnonKey
+  });
+
   if (!window.supabase || !supabaseUrl || !supabaseAnonKey) {
     setSupabaseStatus('unconfigured', 'Non configuré');
     return;
   }
 
   const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
   try {
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    console.log('Supabase utilisateur:', { user, authError });
+
+    const { data, error } = await db.from('prestations').select('*').eq('actif', true);
+    console.log('Prestations Supabase:', { data, error });
+
     window.appSettings = await loadSettings(db);
     setSupabaseStatus('connected', 'Connecté');
 
