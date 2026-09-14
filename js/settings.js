@@ -25,7 +25,11 @@ export const defaultSettings = {
 
 export const loadSettings = async (db, get = id => document.getElementById(id)) => {
   const { data, error } = await db.from('reglages').select('*').limit(1).single();
-  if (error) throw error;
+  if (error) {
+    const isMissingData = error.code === 'PGRST116' || error.code === '42P01' || error.code === '42501' || /No rows|0 rows|does not exist/i.test(error.message || '');
+    if (isMissingData) return { ...defaultSettings };
+    throw error;
+  }
   if (!data) return { ...defaultSettings };
 
   const settings = {

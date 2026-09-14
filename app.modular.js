@@ -3,7 +3,7 @@ import { closeMenus, openTab } from './js/ui.js';
 import { applyTheme, getTheme, getColorTheme } from './js/theme.js';
 import { applyIcons, initIconFields } from './js/icons.js';
 import { initNavigation, initSidebarToggle } from './js/navigation.js';
-import { loadProfileIntoForm } from './js/profile.js';
+import { loadProfileIntoForm, saveProfile } from './js/profile.js';
 import { initMenuEvents } from './js/events.js';
 import { loadSettings } from './js/settings.js';
 import { createPrestationsModule } from './js/prestations.js';
