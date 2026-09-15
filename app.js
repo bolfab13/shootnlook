@@ -390,9 +390,34 @@ export async function initApp() {
 
   async function geocode(query) {
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=fr&q=${encodeURIComponent(query)}`, { headers: { 'Accept-Language': 'fr' } });
-      return await r.json();
+      const homeLatitude = Number(settings.domicile_latitude);
+      const homeLongitude = Number(settings.domicile_longitude);
+      if (!Number.isFinite(homeLatitude) || !Number.isFinite(homeLongitude)) return [];
+      const radiusKm = 100;
+      const latitudeDelta = radiusKm / 111;
+      const longitudeDelta = radiusKm / (111 * Math.cos(homeLatitude * Math.PI / 180));
+      const viewbox = [
+        homeLongitude - longitudeDelta,
+        homeLatitude + latitudeDelta,
+        homeLongitude + longitudeDelta,
+        homeLatitude - latitudeDelta
+      ].join(',');
+      const params = new URLSearchParams({
+        format: 'json', addressdetails: '1', limit: '20', countrycodes: 'fr', bounded: '1', viewbox, q: query
+      });
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'fr' } });
+      const results = await r.json();
+      return results.filter(result => haversineDistance(homeLatitude, homeLongitude, Number(result.lat), Number(result.lon)) <= radiusKm);
     } catch { return []; }
+  }
+
+  function haversineDistance(latitudeA, longitudeA, latitudeB, longitudeB) {
+    if (![latitudeA, longitudeA, latitudeB, longitudeB].every(Number.isFinite)) return Infinity;
+    const radians = value => value * Math.PI / 180;
+    const deltaLatitude = radians(latitudeB - latitudeA);
+    const deltaLongitude = radians(longitudeB - longitudeA);
+    const a = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB)) * Math.sin(deltaLongitude / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   async function road(a, b, c, d) {
@@ -435,6 +460,7 @@ export async function initApp() {
   $('ec-rechercher')?.addEventListener('click', async () => {
     const nom = $('ec-recherche-nom')?.value.trim() || '';
     const ville = $('ec-recherche-ville')?.value.trim() || '';
+    if (!settings.domicile_latitude || !settings.domicile_longitude) return alert('Renseigne et localise ton domicile dans le profil avant de rechercher une ecurie.');
     if (!nom && !ville) return alert('Saisis un nom ou une ville.');
     const btn = $('ec-rechercher');
     btn.disabled = true;
