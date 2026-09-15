@@ -128,8 +128,8 @@ const initModularApp = async () => {
   const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
   try {
-    const { data: { user }, error: authError } = await db.auth.getUser();
-    console.log('Supabase utilisateur:', { user, authError });
+    const { data: { session } } = await db.auth.getSession();
+    console.log('Supabase utilisateur:', { user: session?.user || null });
 
     const { data, error } = await db.from('prestations').select('*').eq('actif', true);
     console.log('Prestations Supabase:', { data, error });
