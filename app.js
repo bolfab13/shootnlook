@@ -80,6 +80,8 @@ export async function initApp() {
   let map = null;
   let stableMapLayers = {};
   let stableMarkers = null;
+  const homeMarkerIcon = window.L?.divIcon({ className: 'home-map-marker', html: '<span></span>', iconSize: [22, 22], iconAnchor: [11, 11] });
+  const stableMarkerIcon = window.L?.divIcon({ className: 'stable-map-marker', html: '<span></span>', iconSize: [16, 16], iconAnchor: [8, 8] });
   let currentEcurie = null;
   let currentCavaliere = null;
   let currentShooting = null;
@@ -345,7 +347,8 @@ export async function initApp() {
     const a = localStorage.getItem('profil_adresse') || '';
     const cp = localStorage.getItem('profil_code_postal') || '';
     const v = localStorage.getItem('profil_ville') || '';
-    [['pf-pseudo', p], ['pf-societe', s], ['pf-adresse', a], ['pf-code-postal', cp], ['pf-ville', v], ['topbar-user-name', p], ['menu-user-name', p], ['dashboard-user-name', p]].forEach(([id, value]) => {
+    const country = localStorage.getItem('profil_pays') || 'France';
+    [['pf-pseudo', p], ['pf-societe', s], ['pf-adresse', a], ['pf-code-postal', cp], ['pf-ville', v], ['pf-pays', country], ['topbar-user-name', p], ['menu-user-name', p], ['dashboard-user-name', p]].forEach(([id, value]) => {
       if ($(id)) $(id).value !== undefined ? $(id).value = value : $(id).textContent = value;
     });
     document.querySelectorAll('.user-avatar').forEach(x => x.textContent = p[0]?.toUpperCase() || 'A');
@@ -399,14 +402,16 @@ export async function initApp() {
     const a = $('pf-adresse').value.trim();
     const cp = $('pf-code-postal').value.trim();
     const v = $('pf-ville').value.trim();
+    const country = $('pf-pays').value.trim() || 'France';
     localStorage.setItem('profil_pseudo', p);
     localStorage.setItem('profil_societe', s);
     localStorage.setItem('profil_adresse', a);
     localStorage.setItem('profil_code_postal', cp);
     localStorage.setItem('profil_ville', v);
+    localStorage.setItem('profil_pays', country);
     if (settings.id) {
-      const home = await geocodeHomeAddress(a, cp, v);
-      const update = { nom_entreprise: s, adresse: a, code_postal_entreprise: cp, ville_entreprise: v, domicile_adresse: [a, cp, v].filter(Boolean).join(', ') };
+      const home = await geocodeHomeAddress(a, cp, v, country);
+      const update = { nom_entreprise: s, adresse: a, code_postal_entreprise: cp, ville_entreprise: v, domicile_adresse: [a, cp, v, country].filter(Boolean).join(', ') };
       if (home) {
         update.domicile_latitude = home.lat;
         update.domicile_longitude = home.lon;
@@ -420,13 +425,18 @@ export async function initApp() {
     $('profile-modal')?.classList.remove('visible');
   });
 
-  async function geocodeHomeAddress(address, postalCode, city) {
-    const query = [address, postalCode, city].filter(Boolean).join(', ');
+  function isFranceCoordinate(latitude, longitude) {
+    return latitude >= 41 && latitude <= 51.5 && longitude >= -5.5 && longitude <= 10;
+  }
+
+  async function geocodeHomeAddress(address, postalCode, city, country = 'France') {
+    const query = [address, postalCode, city, country].filter(Boolean).join(', ');
     if (!query) return null;
     try {
-      const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'fr', q: query });
+      const params = new URLSearchParams({ format: 'json', addressdetails: '1', limit: '5', countrycodes: country.toLowerCase() === 'france' ? 'fr' : '', q: query });
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'fr' } });
-      const [result] = await response.json();
+      const results = await response.json();
+      const result = results.find(item => isFranceCoordinate(Number(item.lat), Number(item.lon)));
       return result ? { lat: Number(result.lat), lon: Number(result.lon) } : null;
     } catch { return null; }
   }
@@ -435,6 +445,7 @@ export async function initApp() {
     try {
       const homeLatitude = Number(settings.domicile_latitude);
       const homeLongitude = Number(settings.domicile_longitude);
+      if (!isFranceCoordinate(homeLatitude, homeLongitude)) return [];
       if (!Number.isFinite(homeLatitude) || !Number.isFinite(homeLongitude)) return [];
       const radiusKm = 100;
       const latitudeDelta = radiusKm / 111;
@@ -561,22 +572,22 @@ export async function initApp() {
     stableMarkers.clearLayers();
     const homeLatitude = Number(settings.domicile_latitude);
     const homeLongitude = Number(settings.domicile_longitude);
-    if (Number.isFinite(homeLatitude) && Number.isFinite(homeLongitude)) {
-      L.marker([homeLatitude, homeLongitude]).addTo(stableMarkers).bindPopup('<strong>Mon domicile</strong>');
+    if (isFranceCoordinate(homeLatitude, homeLongitude)) {
+      L.marker([homeLatitude, homeLongitude], { icon: homeMarkerIcon }).addTo(stableMarkers).bindPopup('<strong>Mon domicile</strong>');
       map.setView([homeLatitude, homeLongitude], 9);
     }
     results.forEach(result => {
       const latitude = Number(result.lat);
       const longitude = Number(result.lon);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-      L.marker([latitude, longitude]).addTo(stableMarkers).bindPopup(`<strong>${safe(result.name || result.display_name?.split(',')[0] || 'Ecurie')}</strong>`);
+      L.marker([latitude, longitude], { icon: stableMarkerIcon }).addTo(stableMarkers).bindPopup(`<strong>${safe(result.name || result.display_name?.split(',')[0] || 'Ecurie')}</strong>`);
     });
   }
 
   $('ec-rechercher')?.addEventListener('click', async () => {
     const nom = $('ec-recherche-nom')?.value.trim() || '';
     const ville = $('ec-recherche-ville')?.value.trim() || '';
-    if (!settings.domicile_latitude || !settings.domicile_longitude) return alert('Renseigne et localise ton domicile dans le profil avant de rechercher une ecurie.');
+    if (!isFranceCoordinate(Number(settings.domicile_latitude), Number(settings.domicile_longitude))) return alert('Renseigne ton adresse, ta ville et ton pays dans le profil, puis enregistre-les avant de rechercher une ecurie.');
     if (!nom && !ville) return alert('Saisis un nom ou une ville.');
     const btn = $('ec-rechercher');
     btn.disabled = true;
