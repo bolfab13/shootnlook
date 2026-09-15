@@ -361,6 +361,7 @@ export async function initApp() {
     closeMenus();
     if (button.dataset.tab === 'dashboard') loadDashboard();
     if (button.dataset.tab === 'calendrier') renderCalendar();
+    if (button.dataset.tab === 'ecuries') setTimeout(() => map?.invalidateSize(), 0);
   }));
 
   $('sidebar-toggle')?.addEventListener('click', () => innerWidth <= 780 ? layout?.classList.toggle('mobile-menu') : setSidebar(root.dataset.sidebar === 'compact' ? 'normal' : 'compact'));
@@ -403,10 +404,32 @@ export async function initApp() {
     localStorage.setItem('profil_adresse', a);
     localStorage.setItem('profil_code_postal', cp);
     localStorage.setItem('profil_ville', v);
-    if (settings.id) await db.from('reglages').update({ nom_entreprise: s, adresse: a, code_postal_entreprise: cp, ville_entreprise: v }).eq('id', settings.id);
+    if (settings.id) {
+      const home = await geocodeHomeAddress(a, cp, v);
+      const update = { nom_entreprise: s, adresse: a, code_postal_entreprise: cp, ville_entreprise: v, domicile_adresse: [a, cp, v].filter(Boolean).join(', ') };
+      if (home) {
+        update.domicile_latitude = home.lat;
+        update.domicile_longitude = home.lon;
+        settings.domicile_latitude = home.lat;
+        settings.domicile_longitude = home.lon;
+      }
+      const { error } = await db.from('reglages').update(update).eq('id', settings.id);
+      if (error) return alert(error.message);
+    }
     loadLocalProfile();
     $('profile-modal')?.classList.remove('visible');
   });
+
+  async function geocodeHomeAddress(address, postalCode, city) {
+    const query = [address, postalCode, city].filter(Boolean).join(', ');
+    if (!query) return null;
+    try {
+      const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'fr', q: query });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'fr' } });
+      const [result] = await response.json();
+      return result ? { lat: Number(result.lat), lon: Number(result.lon) } : null;
+    } catch { return null; }
+  }
 
   async function geocode(query) {
     try {
@@ -422,11 +445,35 @@ export async function initApp() {
         homeLongitude + longitudeDelta,
         homeLatitude - latitudeDelta
       ].join(',');
-      const params = new URLSearchParams({
-        format: 'json', addressdetails: '1', limit: '20', countrycodes: 'fr', bounded: '1', viewbox, q: query
-      });
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'fr' } });
-      const results = await r.json();
+      const [west, north, east, south] = viewbox.split(',').map(Number);
+      const searchText = query.toLowerCase().replace(/[^a-z0-9àâçéèêëîïôûùüÿ -]/gi, ' ').trim();
+      const namePattern = searchText ? searchText.split(/\s+/).filter(Boolean).map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') : 'haras|ecurie|écurie|centre équestre|centre hippique|domaine équestre|poney club';
+      const overpassQuery = `[out:json][timeout:25];(nwr["amenity"="horse_riding"](${south},${west},${north},${east});nwr["leisure"="horse_riding"](${south},${west},${north},${east});nwr["sport"="equestrian"](${south},${west},${north},${east});nwr["club"="equestrian"](${south},${west},${north},${east});nwr["name"~"${namePattern}",i](${south},${west},${north},${east}););out center tags;`;
+      const response = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: overpassQuery });
+      if (!response.ok) throw new Error(`Overpass ${response.status}`);
+      const payload = await response.json();
+      const seen = new Set();
+      return payload.elements.map(element => {
+        const latitude = element.lat ?? element.center?.lat;
+        const longitude = element.lon ?? element.center?.lon;
+        const tags = element.tags || {};
+        return { ...element, lat: latitude, lon: longitude, name: tags.name || 'Lieu équestre', display_name: [tags.name, tags['addr:street'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(', '), address: { road: tags['addr:street'], postcode: tags['addr:postcode'], city: tags['addr:city'] } };
+      }).filter(result => {
+        const key = `${result.name}|${result.lat}|${result.lon}`;
+        if (seen.has(key) || !Number.isFinite(Number(result.lat)) || !Number.isFinite(Number(result.lon))) return false;
+        seen.add(key);
+        return haversineDistance(homeLatitude, homeLongitude, Number(result.lat), Number(result.lon)) <= radiusKm;
+      }).sort((a, b) => haversineDistance(homeLatitude, homeLongitude, Number(a.lat), Number(a.lon)) - haversineDistance(homeLatitude, homeLongitude, Number(b.lat), Number(b.lon))).slice(0, 50);
+    } catch {
+      return geocodeFallback(query, homeLatitude, homeLongitude, viewbox, radiusKm);
+    }
+  }
+
+  async function geocodeFallback(query, homeLatitude, homeLongitude, viewbox, radiusKm) {
+    try {
+      const params = new URLSearchParams({ format: 'json', addressdetails: '1', limit: '20', countrycodes: 'fr', bounded: '1', viewbox, q: query });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { 'Accept-Language': 'fr' } });
+      const results = await response.json();
       return results.filter(result => haversineDistance(homeLatitude, homeLongitude, Number(result.lat), Number(result.lon)) <= radiusKm);
     } catch { return []; }
   }
@@ -452,7 +499,7 @@ export async function initApp() {
     const box = $('ec-recherche-resultats');
     if (!box) return;
     if (!results.length) {
-      box.innerHTML = '<p class="aide">Aucune ecurie trouvee. Tu peux la saisir manuellement ci-dessous.</p>';
+      box.innerHTML = '<p class="aide">Aucun lieu equestre trouve dans le rayon de 100 km.</p>';
       box.classList.add('visible');
       return;
     }
@@ -500,6 +547,7 @@ export async function initApp() {
     $('stable-map-standard')?.addEventListener('click', () => switchStableMapLayer('standard'));
     $('stable-map-satellite')?.addEventListener('click', () => switchStableMapLayer('satellite'));
     renderStableMap(ecuries.map(stable => ({ name: stable.nom, display_name: `${stable.adresse || ''} ${stable.ville || ''}`, lat: stable.latitude, lon: stable.longitude })));
+    setTimeout(() => map.invalidateSize(), 0);
   }
 
   function switchStableMapLayer(name) {
@@ -533,7 +581,7 @@ export async function initApp() {
     const btn = $('ec-rechercher');
     btn.disabled = true;
     btn.textContent = 'Recherche...';
-    displayStableSearchResults(await geocode(`${nom} ${ville} France`));
+    displayStableSearchResults(await geocode(`${nom} ${ville}`));
     btn.disabled = false;
     btn.textContent = 'Rechercher';
   });
@@ -570,7 +618,7 @@ export async function initApp() {
   $('form-reglages')?.addEventListener('submit', async e => {
     e.preventDefault();
     const p = {
-      nom_entreprise: $('rg-nom-entreprise')?.value || '', adresse: $('rg-adresse-entreprise')?.value || '', code_postal_entreprise: $('rg-code-postal-entreprise')?.value || '', ville_entreprise: $('rg-ville-entreprise')?.value || '', siret: $('rg-siret')?.value || '', domicile_adresse: $('rg-domicile-adresse')?.value || '', domicile_latitude: $('rg-domicile-lat')?.value || null, domicile_longitude: $('rg-domicile-lon')?.value || null, puissance_fiscale_cv: $('rg-cv')?.value || 4, taux_km: $('rg-taux')?.value || .606, mention_tva: $('rg-tva')?.value || '', prefixe_facture: $('rg-prefixe')?.value || '', vehicule_marque: $('rg-vehicule-marque')?.value || '', vehicule_modele: $('rg-vehicule-modele')?.value || '', vehicule_energie: $('rg-vehicule-energie')?.value || 'essence', rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(c => Number(c.value)), rappel_affichage_limite: Number($('rg-bell-limite')?.value) || 3, types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(c => c.value)
+      nom_entreprise: $('rg-nom-entreprise')?.value || '', adresse: $('rg-adresse-entreprise')?.value || '', code_postal_entreprise: $('rg-code-postal-entreprise')?.value || '', ville_entreprise: $('rg-ville-entreprise')?.value || '', siret: $('rg-siret')?.value || '', domicile_adresse: $('rg-domicile-adresse')?.value || settings.domicile_adresse || '', domicile_latitude: $('rg-domicile-lat')?.value || settings.domicile_latitude || null, domicile_longitude: $('rg-domicile-lon')?.value || settings.domicile_longitude || null, puissance_fiscale_cv: $('rg-cv')?.value || 4, taux_km: $('rg-taux')?.value || .606, mention_tva: $('rg-tva')?.value || '', prefixe_facture: $('rg-prefixe')?.value || '', rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(c => Number(c.value)), rappel_affichage_limite: Number($('rg-bell-limite')?.value) || 3, types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(c => c.value)
     };
     if (!p.rappels_jours.length) p.rappels_jours = [7];
     if (!p.types_paiement.length) p.types_paiement = ['espece', 'cheque', 'virement', 'sans_contact'];
