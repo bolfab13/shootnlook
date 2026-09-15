@@ -967,6 +967,123 @@ td button {
     margin-top: 14px;
 }
 
+.stable-search-bar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(160px, .55fr) auto;
+    gap: 8px;
+    width: 100%;
+}
+
+.stable-map-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.stable-map-toolbar span {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#stables-map {
+    height: 430px;
+    width: 100%;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.stable-result {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stable-result > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stable-add-result {
+    flex-shrink: 0;
+}
+
+.stable-saved-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.stable-saved-head h3 {
+    font-size: 16px;
+}
+
+.stable-saved-results {
+    display: grid;
+    gap: 8px;
+}
+
+.stable-saved-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 14px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg-card);
+}
+
+.stable-saved-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.stable-name {
+    width: fit-content;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+}
+
+.stable-saved-card-main span,
+.stable-saved-card-main small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.stable-edit-content {
+    max-width: 480px;
+}
+
+.stable-edit-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+@media (max-width: 700px) {
+    .stable-search-bar {
+        grid-template-columns: 1fr;
+    }
+
+    #stables-map {
+        height: 330px;
+    }
+}
+
 .stable-results.visible {
     display: flex;
 }

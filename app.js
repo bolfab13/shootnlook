@@ -64,6 +64,8 @@ export async function initApp() {
 
   let chart = null;
   let map = null;
+  let stableMapLayers = {};
+  let stableMarkers = null;
   let currentEcurie = null;
   let currentCavaliere = null;
   let currentShooting = null;
@@ -439,13 +441,15 @@ export async function initApp() {
     box.innerHTML = results.map((r, i) => {
       const a = r.address || {};
       const city = a.city || a.town || a.village || a.municipality || '';
-      return `<button type="button" class="stable-result" data-result-index="${i}"><strong>${safe(r.name || r.display_name?.split(',')[0] || '')}</strong><span>${safe(r.display_name || '')}</span><small>${safe(a.postcode || '')} ${safe(city)}</small></button>`;
+      const distance = haversineDistance(Number(settings.domicile_latitude), Number(settings.domicile_longitude), Number(r.lat), Number(r.lon));
+      return `<div class="stable-result"><div><strong>${safe(r.name || r.display_name?.split(',')[0] || '')}</strong><span>${safe(r.display_name || '')}</span><small>${safe(a.postcode || '')} ${safe(city)} · ${distance.toFixed(1)} km</small></div><button type="button" class="btn-primary stable-add-result" data-result-index="${i}">Ajouter</button></div>`;
     }).join('');
     box.classList.add('visible');
-    box.querySelectorAll('[data-result-index]').forEach(b => b.onclick = () => selectStableSearchResult(results[Number(b.dataset.resultIndex)]));
+    box.querySelectorAll('[data-result-index]').forEach(b => b.onclick = () => addStableSearchResult(results[Number(b.dataset.resultIndex)]));
+    renderStableMap(results);
   }
 
-  function selectStableSearchResult(r) {
+  function fillStableForm(r) {
     const a = r.address || {};
     if ($('ec-nom')) $('ec-nom').value = r.name || r.display_name?.split(',')[0] || '';
     if ($('ec-adresse')) $('ec-adresse').value = `${a.house_number || ''} ${a.road || a.pedestrian || ''}`.trim();
@@ -454,7 +458,53 @@ export async function initApp() {
     if ($('ec-lat')) $('ec-lat').value = r.lat || '';
     if ($('ec-lon')) $('ec-lon').value = r.lon || '';
     if ($('ec-coords-statut')) $('ec-coords-statut').textContent = 'Coordonnees trouvees';
+  }
+
+  async function addStableSearchResult(r) {
+    fillStableForm(r);
+    const lat = $('ec-lat')?.value || null;
+    const lon = $('ec-lon')?.value || null;
+    const distance = lat && lon && settings.domicile_latitude && settings.domicile_longitude ? await road(settings.domicile_latitude, settings.domicile_longitude, lat, lon) : null;
+    const payload = { nom: $('ec-nom').value, ville: $('ec-ville').value || null, adresse: $('ec-adresse')?.value || null, code_postal: $('ec-cp')?.value || null, latitude: lat, longitude: lon, distance_domicile_km: distance };
+    const result = await db.from('ecuries').insert(payload);
+    if (result.error) return alert(result.error.message);
     $('ec-recherche-resultats')?.classList.remove('visible');
+    await loadStables();
+  }
+
+  function initStableMap() {
+    if (!window.L || !$('stables-map') || map) return;
+    map = L.map('stables-map').setView([Number(settings.domicile_latitude) || 46.6, Number(settings.domicile_longitude) || 2.4], 7);
+    stableMapLayers.standard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+    stableMapLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
+    stableMapLayers.standard.addTo(map);
+    stableMarkers = L.layerGroup().addTo(map);
+    $('stable-map-standard')?.addEventListener('click', () => switchStableMapLayer('standard'));
+    $('stable-map-satellite')?.addEventListener('click', () => switchStableMapLayer('satellite'));
+    renderStableMap(ecuries.map(stable => ({ name: stable.nom, display_name: `${stable.adresse || ''} ${stable.ville || ''}`, lat: stable.latitude, lon: stable.longitude })));
+  }
+
+  function switchStableMapLayer(name) {
+    if (!map || !stableMapLayers[name]) return;
+    Object.values(stableMapLayers).forEach(layer => map.removeLayer(layer));
+    stableMapLayers[name].addTo(map);
+  }
+
+  function renderStableMap(results = []) {
+    if (!map || !stableMarkers) return;
+    stableMarkers.clearLayers();
+    const homeLatitude = Number(settings.domicile_latitude);
+    const homeLongitude = Number(settings.domicile_longitude);
+    if (Number.isFinite(homeLatitude) && Number.isFinite(homeLongitude)) {
+      L.marker([homeLatitude, homeLongitude]).addTo(stableMarkers).bindPopup('<strong>Mon domicile</strong>');
+      map.setView([homeLatitude, homeLongitude], 9);
+    }
+    results.forEach(result => {
+      const latitude = Number(result.lat);
+      const longitude = Number(result.lon);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+      L.marker([latitude, longitude]).addTo(stableMarkers).bindPopup(`<strong>${safe(result.name || result.display_name?.split(',')[0] || 'Ecurie')}</strong>`);
+    });
   }
 
   $('ec-rechercher')?.addEventListener('click', async () => {
@@ -469,6 +519,8 @@ export async function initApp() {
     btn.disabled = false;
     btn.textContent = 'Rechercher';
   });
+
+  $('fermer-stable-edit')?.addEventListener('click', () => $('stable-edit-modal')?.classList.remove('visible'));
 
   function paymentLabel(value) {
     return { espece: 'Espece', cheque: 'Cheque', virement: 'Virement', sans_contact: 'Sans contact' }[value] || value;
@@ -522,9 +574,10 @@ export async function initApp() {
     if (error) return console.error(error);
     ecuries = data || [];
     const { data: riders } = await db.from('cavalieres').select('id,ecurie_id');
-    if ($('table-ecuries')) $('table-ecuries').querySelector('tbody').innerHTML = ecuries.map(e => `<tr><td>${safe(e.nom)}</td><td>${safe(e.adresse || '')}</td><td>${safe(e.code_postal || '')}</td><td>${safe(e.ville || '')}</td><td>${e.distance_domicile_km ? Number(e.distance_domicile_km).toFixed(1) + ' km A/R' : '-'}</td><td>${(riders || []).filter(r => r.ecurie_id === e.id).length}</td><td><button data-edit-stable="${e.id}">Modifier</button><button class="btn-danger" data-delete-stable="${e.id}">Supprimer</button></td></tr>`).join('');
+    if ($('table-ecuries')) $('table-ecuries').innerHTML = ecuries.map(e => `<article class="stable-saved-card"><div class="stable-saved-card-main"><button type="button" class="stable-name" data-edit-stable="${e.id}">${safe(e.nom)}</button><span>${safe(e.adresse || '')}${e.adresse && e.ville ? ', ' : ''}${safe(e.ville || '')}</span><small>${e.distance_domicile_km ? Number(e.distance_domicile_km).toFixed(1) + ' km' : 'Distance non calculee'} · ${(riders || []).filter(r => r.ecurie_id === e.id).length} cavalier(e)</small></div><button type="button" class="btn-danger" data-delete-stable="${e.id}">Supprimer</button></article>`).join('') || '<p class="aide">Aucune ecurie enregistree pour le moment.</p>';
     document.querySelectorAll('[data-edit-stable]').forEach(b => b.onclick = () => editStable(b.dataset.editStable));
     document.querySelectorAll('[data-delete-stable]').forEach(b => b.onclick = () => deleteStable(b.dataset.deleteStable));
+    renderStableMap(ecuries.map(stable => ({ name: stable.nom, display_name: `${stable.adresse || ''} ${stable.ville || ''}`, lat: stable.latitude, lon: stable.longitude })));
     const options = ecuries.map(e => `<option value="${e.id}">${safe(e.nom)}</option>`).join('');
     if ($('cav-ecurie')) $('cav-ecurie').innerHTML = '<option value="">-- Ecurie --</option>' + options;
     if ($('sh-ecurie')) $('sh-ecurie').innerHTML = '<option value="">-- Ecurie / lieu --</option>' + options;
@@ -536,11 +589,11 @@ export async function initApp() {
     currentEcurie = id;
     [['ec-nom', e.nom], ['ec-ville', e.ville], ['ec-adresse', e.adresse], ['ec-cp', e.code_postal], ['ec-contact-nom', e.contact_nom], ['ec-lat', e.latitude], ['ec-lon', e.longitude]].forEach(([key, value]) => { if ($(key)) $(key).value = value || ''; });
     if ($('ec-submit-btn')) $('ec-submit-btn').textContent = 'Enregistrer';
-    if ($('ec-annuler')) $('ec-annuler').style.display = 'inline-block';
+    $('stable-edit-modal')?.classList.add('visible');
     openTab('ecuries');
   }
 
-  $('ec-annuler')?.addEventListener('click', () => { currentEcurie = null; $('form-ecurie')?.reset(); if ($('ec-submit-btn')) $('ec-submit-btn').textContent = 'Ajouter'; $('ec-annuler').style.display = 'none'; });
+  $('ec-annuler')?.addEventListener('click', () => { currentEcurie = null; $('form-ecurie')?.reset(); $('stable-edit-modal')?.classList.remove('visible'); });
 
   async function deleteStable(id) {
     if (!confirm('Supprimer cette ecurie ?')) return;
@@ -558,7 +611,7 @@ export async function initApp() {
     const result = currentEcurie ? await db.from('ecuries').update(p).eq('id', currentEcurie) : await db.from('ecuries').insert(p);
     if (result.error) return alert(result.error.message);
     $('ec-annuler')?.click();
-    loadStables();
+    await loadStables();
   });
 
   async function loadRiders() {
@@ -884,6 +937,7 @@ export async function initApp() {
     renderThemeColorFields();
     if ($('fa-date')) $('fa-date').value = dateNow();
     await loadSettings();
+    initStableMap();
     await loadStables();
     await loadRiders();
     await loadShootings();

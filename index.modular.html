@@ -244,37 +244,24 @@
             <p>Gere les centres et ecuries partenaires.</p>
           </div>
         </div>
-        <div class="bloc-recherche full-w">
-          <p class="aide" style="width:100%">Recherche autour de ton domicile, dans un rayon de 100 km. La ville est facultative.</p>
-          <input id="ec-recherche-nom" placeholder="Nom de l'ecurie">
-          <input id="ec-recherche-ville" placeholder="Ville">
-          <button type="button" class="btn-primary" id="ec-rechercher">Rechercher</button>
+        <div class="bloc-recherche full-w stable-explorer">
+          <p class="aide" style="width:100%">Explore les ecuries, centres equestres et domaines autour de ton domicile, dans un rayon de 100 km.</p>
+          <div class="stable-search-bar">
+            <input id="ec-recherche-nom" placeholder="Ecurie, centre equestre ou domaine">
+            <input id="ec-recherche-ville" placeholder="Ville (optionnelle)">
+            <button type="button" class="btn-primary" id="ec-rechercher"><i class="bx bx-search"></i> Rechercher</button>
+          </div>
+          <div class="stable-map-toolbar">
+            <button type="button" class="btn-muted" id="stable-map-standard">Plan</button>
+            <button type="button" class="btn-muted" id="stable-map-satellite">Satellite</button>
+            <span id="stable-map-status">Position du domicile</span>
+          </div>
+          <div id="stables-map" aria-label="Carte des ecuries autour du domicile"></div>
           <div class="stable-results" id="ec-recherche-resultats"></div>
         </div>
-        <div class="bloc-recherche full-w">
-          <form id="form-ecurie">
-            <p class="aide" style="width:100%">Seuls le nom et la ville sont obligatoires.</p>
-            <input id="ec-nom" placeholder="Nom de l'ecurie" required>
-            <input id="ec-ville" placeholder="Ville" required>
-            <input id="ec-adresse" placeholder="Adresse (optionnel)">
-            <input id="ec-cp" placeholder="Code postal (optionnel)">
-            <input id="ec-contact-nom" placeholder="Contact (optionnel)">
-            <div class="ligne-coords">
-              <input id="ec-lat" placeholder="Latitude" type="number" step="any">
-              <input id="ec-lon" placeholder="Longitude" type="number" step="any">
-              <span id="ec-coords-statut"></span>
-            </div>
-            <button type="submit" id="ec-submit-btn">Ajouter</button>
-            <button type="button" class="btn-muted" id="ec-annuler" style="display:none">Annuler</button>
-          </form>
-        </div>
         <div class="bloc-table full-w">
-          <table id="table-ecuries">
-            <thead>
-              <tr><th>Nom</th><th>Adresse</th><th>CP</th><th>Ville</th><th>Distance</th><th>Cavalier(e)s</th><th></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="stable-saved-head"><h3>Ecuries enregistrees</h3><span class="aide">Clique sur un nom pour modifier sa fiche.</span></div>
+          <div id="table-ecuries" class="stable-saved-results"></div>
         </div>
       </section>
 
@@ -604,6 +591,27 @@
   </div>
 </div>
 
+<div class="modal" id="stable-edit-modal">
+  <div class="modal-contenu stable-edit-content">
+    <button class="modal-close" id="fermer-stable-edit">&times;</button>
+    <h3>Fiche de l'ecurie</h3>
+    <form id="form-ecurie">
+      <input id="ec-nom" placeholder="Nom de l'ecurie" required>
+      <input id="ec-ville" placeholder="Ville" required>
+      <input id="ec-adresse" placeholder="Adresse (optionnel)">
+      <input id="ec-cp" placeholder="Code postal (optionnel)">
+      <input id="ec-contact-nom" placeholder="Contact (optionnel)">
+      <div class="ligne-coords">
+        <input id="ec-lat" placeholder="Latitude" type="number" step="any">
+        <input id="ec-lon" placeholder="Longitude" type="number" step="any">
+        <span id="ec-coords-statut"></span>
+      </div>
+      <button type="submit" id="ec-submit-btn">Enregistrer</button>
+      <button type="button" class="btn-muted" id="ec-annuler">Annuler</button>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="profile-modal">
   <div class="modal-contenu profile-modal-content">
     <button class="modal-close" id="fermer-profil">&times;</button>
@@ -624,7 +632,7 @@
     <button class="modal-close" id="close-about">&times;</button>
     <h3>À propos</h3>
     <p><strong>Application :</strong> Shoot’n’Look</p>
-    <p><strong>Version :</strong> <code id="app-version">0.1.3</code></p>
+    <p><strong>Version :</strong> <code id="app-version">0.1.4</code></p>
     <p><strong>Mode :</strong> connecté à Supabase</p>
   </div>
 </div>
