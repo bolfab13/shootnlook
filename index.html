@@ -116,6 +116,7 @@
               </div>
             </div>
             <button id="edit-profile-btn"><i class="bx bx-user"></i> Modifier le profil</button>
+            <button id="about-btn"><i class="bx bx-info-circle"></i> À propos</button>
             <button data-open-tab="reglages"><i class="bx bx-cog"></i> Reglages</button>
           </div>
         </div>
@@ -631,6 +632,16 @@
       <input id="pf-ville" placeholder="Ville">
       <button type="submit">Enregistrer</button>
     </form>
+  </div>
+</div>
+
+<div class="modal" id="about-modal">
+  <div class="modal-contenu about-panel">
+    <button class="modal-close" id="close-about">&times;</button>
+    <h3>À propos</h3>
+    <p><strong>Application :</strong> Shoot’n’Look</p>
+    <p><strong>Version :</strong> <code id="app-version">0.1.1</code></p>
+    <p><strong>Mode :</strong> connecté à Supabase</p>
   </div>
 </div>
 

@@ -367,7 +367,9 @@ export async function initApp() {
 
   $('open-reglages-btn')?.addEventListener('click', () => { closeMenus(); openTab('reglages'); });
   $('edit-profile-btn')?.addEventListener('click', () => { $('profile-modal')?.classList.add('visible'); closeMenus(); });
+  $('about-btn')?.addEventListener('click', () => { $('about-modal')?.classList.add('visible'); closeMenus(); });
   $('fermer-profil')?.addEventListener('click', () => $('profile-modal')?.classList.remove('visible'));
+  $('close-about')?.addEventListener('click', () => $('about-modal')?.classList.remove('visible'));
   $('fermer-notifs')?.addEventListener('click', () => $('modal-notifs')?.classList.remove('visible'));
   $('fermer-facture')?.addEventListener('click', () => $('modal-facture')?.classList.remove('visible'));
   document.querySelectorAll('[data-open-tab]').forEach(b => b.addEventListener('click', () => openTab(b.dataset.openTab)));
