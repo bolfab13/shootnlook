@@ -1,4 +1,4 @@
-const APP_VERSION = '0.1.9';
+const APP_VERSION = '0.2.0';
 const APP_BUILD = '20260915';
 
 export { APP_VERSION, APP_BUILD };

@@ -435,8 +435,8 @@ html, body {
 
 #topbar {
     height: 72px;
-    background: rgba(246, 247, 249, 0.95);
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
     padding: 0 24px;
     display: flex;
     align-items: center;
