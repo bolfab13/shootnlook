@@ -8,15 +8,12 @@ export async function initApp() {
   });
 
   const db = createSupabaseClient();
-  const { user, error: authError } = await getCurrentUser(db);
-  console.log('Supabase utilisateur:', { user, authError });
-
-  try {
-    const { data, error } = await db.from('prestations').select('*').eq('actif', true);
-    console.log('Prestations Supabase:', { data, error });
-  } catch (debugError) {
-    console.warn('Erreur debug prestations:', debugError);
-  }
+  const authPromise = getCurrentUser(db).then(({ user, error: authError }) => {
+    console.log('Supabase utilisateur:', { user, authError });
+  });
+  const prestationsDebugPromise = db.from('prestations').select('*').eq('actif', true)
+    .then(({ data, error }) => console.log('Prestations Supabase:', { data, error }))
+    .catch(debugError => console.warn('Erreur debug prestations:', debugError));
 
   const $ = id => document.getElementById(id);
   const root = document.documentElement;
