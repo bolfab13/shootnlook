@@ -1,12 +1,14 @@
-document.addEventListener('DOMContentLoaded', async () => {
+import { createSupabaseClient, getCurrentUser } from './js/supabase.js';
+
+export async function initApp() {
   console.log({
     supabasePresent: !!window.supabase,
     url: typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'ABSENTE',
     keyPresent: typeof SUPABASE_ANON_KEY !== 'undefined'
   });
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data: { user }, error: authError } = await db.auth.getUser();
+  const db = createSupabaseClient();
+  const { user, error: authError } = await getCurrentUser(db);
   console.log('Supabase utilisateur:', { user, authError });
 
   try {
@@ -870,4 +872,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   init();
-});
+}
