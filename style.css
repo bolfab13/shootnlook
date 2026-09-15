@@ -314,6 +314,26 @@ html, body {
     border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
+.brand-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.interface-version {
+    margin-top: 3px;
+    color: var(--sidebar-text);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .2px;
+}
+
+.version-setting {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
 .brand-icon {
     width: 28px;
     height: 28px;
@@ -1932,6 +1952,8 @@ td button {
 }
 
 [data-sidebar="compact"] .brand-name,
+[data-sidebar="compact"] .interface-version,
+[data-sidebar="compact"] .brand-copy,
 [data-sidebar="compact"] .nav-label,
 [data-sidebar="compact"] .menu-title {
     display: none;

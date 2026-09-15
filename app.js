@@ -1,4 +1,5 @@
 import { createSupabaseClient, getCurrentUser } from './js/supabase.js';
+import { APP_VERSION } from './js/versioned-loader.js';
 
 export async function initApp() {
   console.log({
@@ -24,6 +25,19 @@ export async function initApp() {
   const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+
+  function applyVersionDisplay() {
+    const visible = localStorage.getItem('show_interface_version') !== 'false';
+    document.querySelectorAll('[data-interface-version]').forEach(element => {
+      element.textContent = `v${APP_VERSION}`;
+      element.hidden = !visible;
+    });
+    document.querySelectorAll('#app-version').forEach(element => { element.textContent = APP_VERSION; });
+    const toggle = $('setting-show-version');
+    if (toggle) toggle.checked = visible;
+  }
+
+  applyVersionDisplay();
 
   const titles = {
     dashboard: 'Tableau de bord',
@@ -363,6 +377,10 @@ export async function initApp() {
   $('setting-color-theme')?.addEventListener('change', e => setColorTheme(e.target.value));
   $('reset-theme-colors')?.addEventListener('click', resetThemeColors);
   $('save-custom-theme')?.addEventListener('click', () => alert('Couleurs du theme enregistrees'));
+  $('setting-show-version')?.addEventListener('change', event => {
+    localStorage.setItem('show_interface_version', String(event.target.checked));
+    applyVersionDisplay();
+  });
 
   $('open-reglages-btn')?.addEventListener('click', () => { closeMenus(); openTab('reglages'); });
   $('edit-profile-btn')?.addEventListener('click', () => { $('profile-modal')?.classList.add('visible'); closeMenus(); });
@@ -541,7 +559,7 @@ export async function initApp() {
     if (error) return console.error(error);
     if (!data) return;
     settings = { ...settings, ...data, rappels_jours: data.rappels_jours?.length ? data.rappels_jours : settings.rappels_jours, rappel_affichage_limite: data.rappel_affichage_limite || 3, types_paiement: data.types_paiement?.length ? data.types_paiement : settings.types_paiement };
-    [['rg-nom-entreprise', data.nom_entreprise], ['rg-adresse-entreprise', data.adresse], ['rg-code-postal-entreprise', data.code_postal_entreprise], ['rg-ville-entreprise', data.ville_entreprise], ['rg-siret', data.siret], ['rg-domicile-adresse', data.domicile_adresse], ['rg-domicile-lat', data.domicile_latitude], ['rg-domicile-lon', data.domicile_longitude], ['rg-cv', data.puissance_fiscale_cv || 4], ['rg-taux', data.taux_km || .606], ['rg-tva', data.mention_tva], ['rg-prefixe', data.prefixe_facture], ['rg-vehicule-marque', data.vehicule_marque], ['rg-vehicule-modele', data.vehicule_modele], ['rg-vehicule-annee', data.vehicule_annee], ['rg-vehicule-energie', data.vehicule_energie || 'essence'], ['rg-bell-limite', settings.rappel_affichage_limite]].forEach(([id, value]) => { if ($(id)) $(id).value = value ?? ''; });
+    [['rg-nom-entreprise', data.nom_entreprise], ['rg-adresse-entreprise', data.adresse], ['rg-code-postal-entreprise', data.code_postal_entreprise], ['rg-ville-entreprise', data.ville_entreprise], ['rg-siret', data.siret], ['rg-domicile-adresse', data.domicile_adresse], ['rg-domicile-lat', data.domicile_latitude], ['rg-domicile-lon', data.domicile_longitude], ['rg-cv', data.puissance_fiscale_cv || 4], ['rg-taux', data.taux_km || .606], ['rg-tva', data.mention_tva], ['rg-prefixe', data.prefixe_facture], ['rg-vehicule-marque', data.vehicule_marque], ['rg-vehicule-modele', data.vehicule_modele], ['rg-vehicule-energie', data.vehicule_energie || 'essence'], ['rg-bell-limite', settings.rappel_affichage_limite]].forEach(([id, value]) => { if ($(id)) $(id).value = value ?? ''; });
     document.querySelectorAll('.rg-rappel').forEach(c => c.checked = settings.rappels_jours.includes(Number(c.value)));
     document.querySelectorAll('.rg-paiement').forEach(c => c.checked = settings.types_paiement.includes(c.value));
     nomEntreprise(data.nom_entreprise);
@@ -552,7 +570,7 @@ export async function initApp() {
   $('form-reglages')?.addEventListener('submit', async e => {
     e.preventDefault();
     const p = {
-      nom_entreprise: $('rg-nom-entreprise')?.value || '', adresse: $('rg-adresse-entreprise')?.value || '', code_postal_entreprise: $('rg-code-postal-entreprise')?.value || '', ville_entreprise: $('rg-ville-entreprise')?.value || '', siret: $('rg-siret')?.value || '', domicile_adresse: $('rg-domicile-adresse')?.value || '', domicile_latitude: $('rg-domicile-lat')?.value || null, domicile_longitude: $('rg-domicile-lon')?.value || null, puissance_fiscale_cv: $('rg-cv')?.value || 4, taux_km: $('rg-taux')?.value || .606, mention_tva: $('rg-tva')?.value || '', prefixe_facture: $('rg-prefixe')?.value || '', vehicule_marque: $('rg-vehicule-marque')?.value || '', vehicule_modele: $('rg-vehicule-modele')?.value || '', vehicule_annee: $('rg-vehicule-annee')?.value || null, vehicule_energie: $('rg-vehicule-energie')?.value || 'essence', rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(c => Number(c.value)), rappel_affichage_limite: Number($('rg-bell-limite')?.value) || 3, types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(c => c.value)
+      nom_entreprise: $('rg-nom-entreprise')?.value || '', adresse: $('rg-adresse-entreprise')?.value || '', code_postal_entreprise: $('rg-code-postal-entreprise')?.value || '', ville_entreprise: $('rg-ville-entreprise')?.value || '', siret: $('rg-siret')?.value || '', domicile_adresse: $('rg-domicile-adresse')?.value || '', domicile_latitude: $('rg-domicile-lat')?.value || null, domicile_longitude: $('rg-domicile-lon')?.value || null, puissance_fiscale_cv: $('rg-cv')?.value || 4, taux_km: $('rg-taux')?.value || .606, mention_tva: $('rg-tva')?.value || '', prefixe_facture: $('rg-prefixe')?.value || '', vehicule_marque: $('rg-vehicule-marque')?.value || '', vehicule_modele: $('rg-vehicule-modele')?.value || '', vehicule_energie: $('rg-vehicule-energie')?.value || 'essence', rappels_jours: Array.from(document.querySelectorAll('.rg-rappel:checked')).map(c => Number(c.value)), rappel_affichage_limite: Number($('rg-bell-limite')?.value) || 3, types_paiement: Array.from(document.querySelectorAll('.rg-paiement:checked')).map(c => c.value)
     };
     if (!p.rappels_jours.length) p.rappels_jours = [7];
     if (!p.types_paiement.length) p.types_paiement = ['espece', 'cheque', 'virement', 'sans_contact'];
