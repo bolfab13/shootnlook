@@ -1008,6 +1008,9 @@ export async function initApp() {
     setLayout(localStorage.getItem('layout') || 'vertical');
     setSidebar(localStorage.getItem('sidebar') || 'normal');
     setColorTheme(localStorage.getItem('colorTheme') || 'classic');
+    function applyBranchDisplay() {const element = document.getElementById('about-branch-name');if (element) {element.textContent = window.APP_BRANCH || 'inconnue';}}
+    applyVersionDisplay();
+    applyBranchDisplay();
     loadLocalProfile();
     initIconFields();
     applyIcons();
